@@ -19,6 +19,50 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+module is_overflow(Exp, AddExp, OverFlow);
+  input [4:0] Exp;
+  input [4:0] AddExp;
+  output OverFlow;
+ 
+  wire [5:0] NewExp = Exp + AddExp;
+  
+  assign OverFlow = (NewExp >= 6'b011111);
+  
+  
+endmodule
+
+module is_underflow(Exp, SubExp, UnderFlow);
+  input [4:0] Exp;
+  input [4:0] SubExp;
+  output UnderFlow;
+  
+  assign UnderFlow = ( SubExp > Exp );
+  
+endmodule
+
+module is_inexact(Man, CarryOut, inexact);
+  input CarryOut;
+  input [9:0] Man;
+  output inexact;
+  
+  assign inexact = (Man[0] && CarryOut);
+  
+endmodule
+
+module is_invalid_op(Exp1, Exp2, Man1, Man2, InvalidOp);
+  input [4:0] Exp1, Exp2;
+  input [9:0] Man1, Man2;
+  output InvalidOp;
+  
+  wire is_inf_Val1 = (&Exp1 && ~|Man1);
+  wire is_inf_Val2 = (&Exp2 && ~|Man2);
+  
+  wire is_invalid_Val1 = (&Exp1 && |Man1);
+  wire is_invalid_Val2 = (&Exp2 && |Man2);
+  
+  assign InvalidOp = (is_inf_Val1 | is_inf_Val2 | is_invalid_Val1 | is_invalid_Val2);
+
+endmodule
 
 module FullSub_mul(Si, Ri, Din, Debe, Dout);
   input Si, Ri, Din;
@@ -68,12 +112,13 @@ module right_shift_pf(mantisa, is_same_exp, shifts, F);
   
 endmodule
 
-module Prod(Sm, Rm, ExpIn, Fm, ExpOut);
+module Prod(Sm, Rm, ExpIn, Fm, ExpOut, overflow, inexact);
   
   input [10:0] Sm, Rm;
   input [4:0] ExpIn;
   output wire [9:0] Fm;
   output wire [4:0] ExpOut;
+  output        overflow, inexact;
   
   wire [21:0] Result = Sm * Rm;
   
@@ -84,13 +129,13 @@ function [4:0] first_one;
   reg found;
   
   begin
-    found = 0;
-    first_one = 5'b00000; 
+    found = 1'b0;
+    first_one = 5'd0; 
     
     for (idx = 20; idx >= 0 && !found; idx = idx - 1) begin
       if (bits[idx]) begin
-        first_one = (21 - idx);
-        found = 1;
+        first_one = (20 - idx);
+        found = 1'b1;
       end
     end
 
@@ -125,9 +170,9 @@ endfunction
 wire [4:0] exp_pre = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
 
 // Construimos un "stream" para sacar top10/guard/rest y sticky
-wire [27:0] stream0 = {Result[20:0], 6'b0};            // relleno para sticky
+wire [27:0] stream0 = {Result[21:0], 6'b0};            // relleno para sticky
 wire [27:0] stream1 = Debe ? (stream0 >> 11) : (stream0 >> 10);
-wire [27:0] stream2 = ShiftCondition ? (stream1 >> shifts) : stream1;
+wire [27:0] stream2 = ShiftCondition ? (stream1 << shifts) : stream1;
 
 // top10 (10), guard (1), rest3 (3) + sticky (1)
 wire [9:0] top10  = stream2[15:6];
@@ -147,15 +192,21 @@ RoundNearestEven rne_mul(.ms(ms15), .exp(exp_pre), .ms_round(frac_rnd), .exp_rou
 // Salidas finales de Prod
 assign Fm     = frac_rnd;
 assign ExpOut = exp_rnd;
+// ------------ Flag Section -------------  
+  wire h_overflow;
+  is_inexact flag1(.Man(Result[19:10]), .CarryOut(Debe), .inexact(inexact));
+  is_overflow flag2(.Exp(ExpIn), .AddExp(5'b00001), .OverFlow(h_overflow));
+  
+  assign overflow = (Debe) ? h_overflow : 1'b0;
 endmodule
 
 
 // #(parameter N=8), LUEGO adaptar con parameter a 32 bits.
-module ProductHP (S, R, F);
-  
+module ProductHP (S, R, F, overflow, underflow, inv_op, inexact);  
   input [15:0] S, R;
   output wire [15:0] F;
-  
+  output overflow, underflow, inv_op, inexact;
+
   wire[9:0] m1 = S[9:0];
   wire[9:0] m2 = R[9:0];
   
@@ -164,29 +215,31 @@ module ProductHP (S, R, F);
   
   wire s1 = S[15];
   wire s2 = R[15];
-  wire sign;
+  wire sign = s1^s2;
        
-  // Suma de exponentes en el producto.
-  wire [4:0] exp_to_use = e1 + e2 - 5'd15;
-    
-  // Apartir del signo, sabremos si se suma o se resta.
-  wire boolean2 = (s1 != s2);
-  assign sign = (boolean2) ? 1 : 0;
+  wire [4:0] exp_to_use      = e1 + e2 - 5'd15;
+  wire [5:0] evaluate_flags  = e1 + e2;
+  wire [5:0] despues_la_borro= e1 + e2 - 5'd15;
+
   wire [10:0] param_m1 = {1'b1, m1};
   wire [10:0] param_m2 = {1'b1, m2};
-  
+
   wire [9:0] m_final;
   wire [4:0] exp_final;
-  Prod product_mantisa(param_m1, param_m2, exp_to_use, m_final, exp_final);
-  
-  assign F[15] = sign;
+  wire over_t2; // overflow interno por "carry" de normalización
+  Prod product_mantisa(param_m1, param_m2, exp_to_use, m_final, exp_final,
+                       over_t2, inexact);
+
+  assign F[15]    = sign;
   assign F[14:10] = exp_final;
-  assign F[9:0] = m_final;
-  
-  
-  initial begin
-    $monitor("m1: %b, m2: %b", m1, m2);
-    $monitor("sign: %b, exp: %b, mantisa: %b, is_resta: %b", sign, exp_final, m_final, boolean2);
-  end
-  
+  assign F[9:0]   = m_final;
+
+  // Flags (igual que tenías antes)
+  is_invalid_op flag4(.Exp1(e1), .Exp2(e2), .Man1(m1), .Man2(m2), .InvalidOp(inv_op));
+
+  wire over_t1   = (evaluate_flags >= 6'd15) && (despues_la_borro >= 6'b011111);
+  wire under_t1  = (evaluate_flags <  6'd15);
+
+  assign overflow   = over_t1 | over_t2 | inv_op;
+  assign underflow  = under_t1;
 endmodule

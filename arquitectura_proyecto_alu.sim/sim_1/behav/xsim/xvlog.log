@@ -1,0 +1,8 @@
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_fp16_alu_basic
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_flags.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_alu_mul_flags_bin
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo_extras.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven_more
