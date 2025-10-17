@@ -24,8 +24,6 @@ module RoundNearestEven(ms, exp, ms_round, exp_round);
   input  [4:0]  exp;
   output [9:0]  ms_round;
   output [4:0]  exp_round;
-
-  // <<< Mueve tu función AQUÍ dentro >>>
   function is_necesary_round;
     input [4:0] bits;
     integer idx;

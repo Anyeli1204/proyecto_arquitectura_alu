@@ -1,213 +1,217 @@
 Time resolution is 1 ps
-===== Directed tests (casos clásicos) =====
-=0 lsb=0 ? trunc  ms=101010101000000  exp=01101  -> ms_round=1010101010 exp_round=01101        OK
->0 lsb=1 ? trunc  ms=100100000100100  exp=01111  -> ms_round=1001000001 exp_round=01111        OK
-=0 ? keep (even)  ms=000000001010000  exp=01111  -> ms_round=0000000010 exp_round=01111        OK
-? +1  (odd?even)  ms=000000000110000  exp=01111  -> ms_round=0000000010 exp_round=01111        OK
-y ? frac=0 exp+1  ms=111111111110000  exp=01111  -> ms_round=0000000000 exp_round=10000        OK
->1/2, lsb=0 ? +1  ms=000000001010001  exp=10000  -> ms_round=0000000011 exp_round=10000        OK
->1/2, lsb=1 ? +1  ms=000000001110010  exp=10000  -> ms_round=0000000100 exp_round=10000        OK
-y ? frac=0 exp+1  ms=111111111111111  exp=01110  -> ms_round=0000000000 exp_round=01111        OK
-tie lsb=0 ? keep  ms=000000000010000  exp=01101  -> ms_round=0000000000 exp_round=01101        OK
-/2 ? +1 (frac=1)  ms=000000000010001  exp=01101  -> ms_round=0000000001 exp_round=01101        OK
-sin carry global  ms=011111111110000  exp=10001  -> ms_round=1000000000 exp_round=10001        OK
- cascada parcial  ms=011111111110001  exp=10001  -> ms_round=1000000000 exp_round=10001        OK
-===== Random fuzz (200 casos) =====
-        RND#      ms=011110001110100  exp=10110  -> ms_round=0111100100 exp_round=10110        OK
-        RND#     ms=011100010110011  exp=01000  -> ms_round=0111000110 exp_round=01000        OK
-        RND#     ms=111100110111111  exp=10010  -> ms_round=1111001110 exp_round=10010        OK
-        RND#     ms=101101100001010  exp=00101  -> ms_round=1011011000 exp_round=00101        OK
-        RND#     ms=111111100110111  exp=10001  -> ms_round=1111111010 exp_round=10001        OK
-        RND#     ms=001011101100111  exp=10100  -> ms_round=0010111011 exp_round=10100        OK
-        RND#     ms=100100101100110  exp=00111  -> ms_round=1001001011 exp_round=00111        OK
-        RND#     ms=110010000011011  exp=01100  -> ms_round=1100100001 exp_round=01100        OK
-        RND#     ms=101010101110011  exp=01100  -> ms_round=1010101100 exp_round=01100        OK
-        RND#   	  ms=000011111001000  exp=01010  -> ms_round=0000111110 exp_round=01010        OK
-        RND#   
-  ms=110111000010110  exp=01110  -> ms_round=1101110001 exp_round=01110        OK
-        RND#     ms=111101100101000  exp=01001  -> ms_round=1111011001 exp_round=01001        OK
-        RND#     ms=111001100101000  exp=10010  -> ms_round=1110011001 exp_round=10010        OK
-        RND#   
-  ms=110011110001100  exp=10101  -> ms_round=1100111100 exp_round=10101        OK
-        RND#     ms=001101111101000  exp=11011  -> ms_round=0011011111 exp_round=11011        OK
-        RND#     ms=110100010000001  exp=00011  -> ms_round=1101000100 exp_round=00011        OK
-        RND#     ms=101011100011111  exp=11100  -> ms_round=1010111001 exp_round=11100        OK
-        RND#     ms=100011110100000  exp=10101  -> ms_round=1000111101 exp_round=10101        OK
-        RND#     ms=000110100110001  exp=00110  -> ms_round=0001101010 exp_round=00110        OK
-        RND#     ms=011000111111011  exp=11000  -> ms_round=0110010000 exp_round=11000        OK
-        RND#     ms=110111000001110  exp=11111  -> ms_round=1101110000 exp_round=11111        OK
-        RND#     ms=111001111010111  exp=01110  -> ms_round=1110011111 exp_round=01110        OK
-        RND#     ms=101100010111110  exp=00011  -> ms_round=1011000110 exp_round=00011        OK
-        RND#     ms=111100111010010  exp=10100  -> ms_round=1111001111 exp_round=10100        OK
-        RND#     ms=101001101100111  exp=01001  -> ms_round=1010011011 exp_round=01001        OK
-        RND#     ms=001000010111101  exp=00000  -> ms_round=0010000110 exp_round=00000        OK
-        RND#     ms=111110100111010  exp=01111  -> ms_round=1111101010 exp_round=01111        OK
-        RND#     ms=000101111011111  exp=01000  -> ms_round=0001011111 exp_round=01000        OK
-        RND#     ms=000111110010111  exp=11011  -> ms_round=0001111101 exp_round=11011        OK
-        RND#     ms=111010000100011  exp=11101  -> ms_round=1110100001 exp_round=11101        OK
-        RND#     ms=010110000001000  exp=00001  -> ms_round=0101100000 exp_round=00001        OK
-        RND#     ms=100010000011110  exp=00000  -> ms_round=1000100001 exp_round=00000        OK
-        RND#      ms=111111010110001  exp=10110  -> ms_round=1111110110 exp_round=10110        OK
-        RND#   !  ms=000011001000110  exp=01000  -> ms_round=0000110010 exp_round=01000        OK
-        RND#   "  ms=111011011101110  exp=01001  -> ms_round=1110110111 exp_round=01001        OK
-        RND#   #  ms=111011100000001  exp=01111  -> ms_round=1110111000 exp_round=01111        OK
-        RND#   $  ms=011110110011000  exp=00100  -> ms_round=0111101101 exp_round=00100        OK
-        RND#   %  ms=100010010000011  exp=10000  -> ms_round=1000100100 exp_round=10000        OK
-        RND#   &  ms=011011100100101  exp=11101  -> ms_round=0110111001 exp_round=11101        OK
-        RND#   '  ms=111101011001110  exp=01111  -> ms_round=1111010110 exp_round=01111        OK
-        RND#   (  ms=110011010011101  exp=01010  -> ms_round=1100110101 exp_round=01010        OK
-        RND#   )  ms=000110101111010  exp=00000  -> ms_round=0001101100 exp_round=00000        OK
-        RND#   *  ms=101111111011010  exp=01001  -> ms_round=1011111111 exp_round=01001        OK
-        RND#   +  ms=110110001001001  exp=00000  -> ms_round=1101100010 exp_round=00000        OK
-        RND#   ,  ms=010100101101001  exp=01101  -> ms_round=0101001011 exp_round=01101        OK
-        RND#   -  ms=001111100011101  exp=00100  -> ms_round=0011111001 exp_round=00100        OK
-        RND#   .  ms=101000011110001  exp=11111  -> ms_round=1010001000 exp_round=11111        OK
-        RND#   /  ms=011010101010011  exp=10001  -> ms_round=0110101011 exp_round=10001        OK
-        RND#   0  ms=101101011010000  exp=00000  -> ms_round=1011010110 exp_round=00000        OK
-        RND#   1  ms=101011010000001  exp=01010  -> ms_round=1010110100 exp_round=01010        OK
-        RND#   2  ms=100010100111010  exp=11101  -> ms_round=1000101010 exp_round=11101        OK
-        RND#   3  ms=011101010110111  exp=11110  -> ms_round=0111010110 exp_round=11110        OK
-        RND#   4  ms=110001110011011  exp=10010  -> ms_round=1100011101 exp_round=10010        OK
-        RND#   5  ms=110010110000000  exp=01000  -> ms_round=1100101100 exp_round=01000        OK
-        RND#   6  ms=111011001101010  exp=11111  -> ms_round=1110110011 exp_round=11111        OK
-        RND#   7  ms=010000111011000  exp=00010  -> ms_round=0100001111 exp_round=00010        OK
-        RND#   8  ms=011111011100001  exp=00101  -> ms_round=0111110111 exp_round=00101        OK
-        RND#   9  ms=001000110110111  exp=00100  -> ms_round=0010001110 exp_round=00100        OK
-        RND#   :  ms=010010110011010  exp=11001  -> ms_round=0100101101 exp_round=11001        OK
-        RND#   ;  ms=000011001011110  exp=11110  -> ms_round=0000110011 exp_round=11110        OK
-        RND#   <  ms=001011101001000  exp=01101  -> ms_round=0010111010 exp_round=01101        OK
-        RND#   =  ms=110001100101011  exp=10100  -> ms_round=1100011001 exp_round=10100        OK
-        RND#   >  ms=010001111010001  exp=10111  -> ms_round=0100011111 exp_round=10111        OK
-        RND#   ?  ms=001011100101011  exp=10111  -> ms_round=0010111001 exp_round=10111        OK
-        RND#   @  ms=000111000001111  exp=01001  -> ms_round=0001110000 exp_round=01001        OK
-        RND#   A  ms=111101100100001  exp=01001  -> ms_round=1111011001 exp_round=01001        OK
-        RND#   B  ms=101110011100010  exp=00000  -> ms_round=1011100111 exp_round=00000        OK
-        RND#   C  ms=110010101011001  exp=10001  -> ms_round=1100101011 exp_round=10001        OK
-        RND#   D  ms=011000001110001  exp=01110  -> ms_round=0110000100 exp_round=01110        OK
-        RND#   E  ms=001110111101111  exp=10010  -> ms_round=0011101111 exp_round=10010        OK
-        RND#   F  ms=000101011010000  exp=00101  -> ms_round=0001010110 exp_round=00101        OK
-        RND#   G  ms=110110101100111  exp=00001  -> ms_round=1101101011 exp_round=00001        OK
-        RND#   H  ms=010111000100110  exp=11100  -> ms_round=0101110001 exp_round=11100        OK
-        RND#   I  ms=001011100001110  exp=01001  -> ms_round=0010111000 exp_round=01001        OK
-        RND#   J  ms=111001011000101  exp=01110  -> ms_round=1110010110 exp_round=01110        OK
-        RND#   K  ms=100110001010111  exp=11000  -> ms_round=1001100011 exp_round=11000        OK
-        RND#   L  ms=010100100000110  exp=01010  -> ms_round=0101001000 exp_round=01010        OK
-        RND#   M  ms=010010000010011  exp=01000  -> ms_round=0100100001 exp_round=01000        OK
-        RND#   N  ms=100011101010010  exp=11010  -> ms_round=1000111011 exp_round=11010        OK
-        RND#   O  ms=001010011110010  exp=00001  -> ms_round=0010101000 exp_round=00001        OK
-        RND#   P  ms=111001111101011  exp=00110  -> ms_round=1110011111 exp_round=00110        OK
-        RND#   Q  ms=111000101010111  exp=01001  -> ms_round=1110001011 exp_round=01001        OK
-        RND#   R  ms=111101000101111  exp=11011  -> ms_round=1111010001 exp_round=11011        OK
-        RND#   S  ms=010101111100100  exp=10000  -> ms_round=0101011111 exp_round=10000        OK
-        RND#   T  ms=111111100011100  exp=10111  -> ms_round=1111111001 exp_round=10111        OK
-        RND#   U  ms=001000100100111  exp=00001  -> ms_round=0010001001 exp_round=00001        OK
-        RND#   V  ms=010000010011000  exp=01101  -> ms_round=0100000101 exp_round=01101        OK
-        RND#   W  ms=100010010001111  exp=01000  -> ms_round=1000100100 exp_round=01000        OK
-        RND#   X  ms=110111001110101  exp=10111  -> ms_round=1101110100 exp_round=10111        OK
-        RND#   Y  ms=000100011101111  exp=11011  -> ms_round=0001000111 exp_round=11011        OK
-        RND#   Z  ms=101010110010010  exp=10011  -> ms_round=1010101101 exp_round=10011        OK
-        RND#   [  ms=000011100101110  exp=00101  -> ms_round=0000111001 exp_round=00101        OK
-        RND#   \  ms=111000011111001  exp=00000  -> ms_round=1110001000 exp_round=00000        OK
-        RND#   ]  ms=100001001110110  exp=11010  -> ms_round=1000010100 exp_round=11010        OK
-        RND#   ^  ms=001000100011010  exp=11011  -> ms_round=0010001001 exp_round=11011        OK
-        RND#   _  ms=010000011000101  exp=01111  -> ms_round=0100000110 exp_round=01111        OK
-        RND#   `  ms=000111111101010  exp=00110  -> ms_round=0001111111 exp_round=00110        OK
-        RND#   a  ms=011001000000101  exp=10000  -> ms_round=0110010000 exp_round=10000        OK
-        RND#   b  ms=011111000010110  exp=00000  -> ms_round=0111110001 exp_round=00000        OK
-        RND#   c  ms=111001111110000  exp=01111  -> ms_round=1110100000 exp_round=01111        OK
-        RND#   d  ms=011110101000000  exp=01010  -> ms_round=0111101010 exp_round=01010        OK
-        RND#   e  ms=111101000101001  exp=11100  -> ms_round=1111010001 exp_round=11100        OK
-        RND#   f  ms=111100011110110  exp=11000  -> ms_round=1111001000 exp_round=11000        OK
-        RND#   g  ms=101100101010100  exp=10001  -> ms_round=1011001011 exp_round=10001        OK
-        RND#   h  ms=101000100101001  exp=10011  -> ms_round=1010001001 exp_round=10011        OK
-        RND#   i  ms=101111101000100  exp=00011  -> ms_round=1011111010 exp_round=00011        OK
-        RND#   j  ms=000001100010110  exp=10010  -> ms_round=0000011001 exp_round=10010        OK
-        RND#   k  ms=011000101100101  exp=00100  -> ms_round=0110001011 exp_round=00100        OK
-        RND#   l  ms=001100011110110  exp=10011  -> ms_round=0011001000 exp_round=10011        OK
-        RND#   m  ms=100010010100111  exp=01101  -> ms_round=1000100101 exp_round=01101        OK
-        RND#   n  ms=001011011110000  exp=11101  -> ms_round=0010111000 exp_round=11101        OK
-        RND#   o  ms=011111100111010  exp=10001  -> ms_round=0111111010 exp_round=10001        OK
-        RND#   p  ms=011110010001110  exp=11110  -> ms_round=0111100100 exp_round=11110        OK
-        RND#   q  ms=000100000101111  exp=00101  -> ms_round=0001000001 exp_round=00101        OK
-        RND#   r  ms=100110001010011  exp=00011  -> ms_round=1001100011 exp_round=00011        OK
-        RND#   s  ms=110111010101000  exp=10111  -> ms_round=1101110101 exp_round=10111        OK
-        RND#   t  ms=001010111101010  exp=00100  -> ms_round=0010101111 exp_round=00100        OK
-        RND#   u  ms=110101111001011  exp=01110  -> ms_round=1101011110 exp_round=01110        OK
-        RND#   v  ms=000000111010010  exp=01101  -> ms_round=0000001111 exp_round=01101        OK
-        RND#   w  ms=111011100001011  exp=00110  -> ms_round=1110111000 exp_round=00110        OK
-        RND#   x  ms=001010001110011  exp=11011  -> ms_round=0010100100 exp_round=11011        OK
-        RND#   y  ms=011101101100010  exp=11111  -> ms_round=0111011011 exp_round=11111        OK
-        RND#   z  ms=100101110011010  exp=10111  -> ms_round=1001011101 exp_round=10111        OK
-        RND#   {  ms=100000010000110  exp=00000  -> ms_round=1000000100 exp_round=00000        OK
-        RND#   |  ms=100101001010111  exp=10110  -> ms_round=1001010011 exp_round=10110        OK
-        RND#   }  ms=001000110100110  exp=11111  -> ms_round=0010001101 exp_round=11111        OK
-        RND#   ~  ms=001101111110101  exp=01100  -> ms_round=0011100000 exp_round=01100        OK
-        RND#     ms=001001101111100  exp=11010  -> ms_round=0010011100 exp_round=11010        OK
-        RND#   €  ms=010011100110111  exp=10100  -> ms_round=0100111010 exp_round=10100        OK
-        RND#     ms=110110110111111  exp=00110  -> ms_round=1101101110 exp_round=00110        OK
-        RND#   ‚  ms=101011010001010  exp=00001  -> ms_round=1010110100 exp_round=00001        OK
-        RND#   ƒ  ms=010110100110111  exp=11101  -> ms_round=0101101010 exp_round=11101        OK
-        RND#   „  ms=111111111101111  exp=01000  -> ms_round=1111111111 exp_round=01000        OK
-        RND#   …  ms=110000101100110  exp=01011  -> ms_round=1100001011 exp_round=01011        OK
-        RND#   †  ms=100100100010011  exp=10100  -> ms_round=1001001001 exp_round=10100        OK
-        RND#   ‡  ms=001100101111111  exp=10100  -> ms_round=0011001100 exp_round=10100        OK
-        RND#   ˆ  ms=011011111001000  exp=01010  -> ms_round=0110111110 exp_round=01010        OK
-        RND#   ‰  ms=101100110011110  exp=01010  -> ms_round=1011001101 exp_round=01010        OK
-        RND#   Š  ms=011001100100100  exp=00101  -> ms_round=0110011001 exp_round=00101        OK
-        RND#   ‹  ms=101100110100000  exp=00110  -> ms_round=1011001101 exp_round=00110        OK
-        RND#   Œ  ms=101011100001100  exp=00101  -> ms_round=1010111000 exp_round=00101        OK
-        RND#     ms=001011011101100  exp=01111  -> ms_round=0010110111 exp_round=01111        OK
-        RND#   Ž  ms=011100000000101  exp=10111  -> ms_round=0111000000 exp_round=10111        OK
-        RND#     ms=000111010010111  exp=10100  -> ms_round=0001110101 exp_round=10100        OK
-        RND#     ms=011001100101100  exp=01101  -> ms_round=0110011001 exp_round=01101        OK
-        RND#   ‘  ms=011011110110001  exp=10110  -> ms_round=0110111110 exp_round=10110        OK
-        RND#   ’  ms=010110111110011  exp=01100  -> ms_round=0101110000 exp_round=01100        OK
-        RND#   “  ms=111000000000010  exp=01111  -> ms_round=1110000000 exp_round=01111        OK
-        RND#   ”  ms=101001001011011  exp=10010  -> ms_round=1010010011 exp_round=10010        OK
-        RND#   •  ms=011000100110010  exp=11011  -> ms_round=0110001010 exp_round=11011        OK
-        RND#   –  ms=101000001011110  exp=01100  -> ms_round=1010000011 exp_round=01100        OK
-        RND#   —  ms=011011101100111  exp=11101  -> ms_round=0110111011 exp_round=11101        OK
-        RND#   ˜  ms=000100110111001  exp=01000  -> ms_round=0001001110 exp_round=01000        OK
-        RND#   ™  ms=111000010110110  exp=10011  -> ms_round=1110000110 exp_round=10011        OK
-        RND#   š  ms=101100011011011  exp=01100  -> ms_round=1011000111 exp_round=01100        OK
-        RND#   ›  ms=110000000011111  exp=00111  -> ms_round=1100000001 exp_round=00111        OK
-        RND#   œ  ms=101011000100011  exp=10001  -> ms_round=1010110001 exp_round=10001        OK
-        RND#     ms=000001110001000  exp=01101  -> ms_round=0000011100 exp_round=01101        OK
-        RND#   ž  ms=100010110011110  exp=01000  -> ms_round=1000101101 exp_round=01000        OK
-        RND#   Ÿ  ms=011011110110101  exp=01010  -> ms_round=0110111110 exp_round=01010        OK
-        RND#      ms=111000001000010  exp=00000  -> ms_round=1110000010 exp_round=00000        OK
-        RND#   ¡  ms=011000101101010  exp=01101  -> ms_round=0110001011 exp_round=01101        OK
-        RND#   ¢  ms=001101110001101  exp=00111  -> ms_round=0011011100 exp_round=00111        OK
-        RND#   £  ms=101010010010100  exp=00000  -> ms_round=1010100101 exp_round=00000        OK
-        RND#   ¤  ms=101101010000111  exp=11000  -> ms_round=1011010100 exp_round=11000        OK
-        RND#   ¥  ms=010011100101001  exp=01101  -> ms_round=0100111001 exp_round=01101        OK
-        RND#   ¦  ms=110001111000110  exp=10111  -> ms_round=1100011110 exp_round=10111        OK
-        RND#   §  ms=000011110010101  exp=11010  -> ms_round=0000111101 exp_round=11010        OK
-        RND#   ¨  ms=010101111110010  exp=11100  -> ms_round=0101100000 exp_round=11100        OK
-        RND#   ©  ms=000110101010110  exp=01001  -> ms_round=0001101011 exp_round=01001        OK
-        RND#   ª  ms=100000001000101  exp=01100  -> ms_round=1000000010 exp_round=01100        OK
-        RND#   «  ms=001011111100101  exp=00001  -> ms_round=0010111111 exp_round=00001        OK
-        RND#   ¬  ms=010000010011101  exp=00100  -> ms_round=0100000101 exp_round=00100        OK
-        RND#   ­  ms=111111011110101  exp=11011  -> ms_round=1111111000 exp_round=11011        OK
-        RND#   ®  ms=001111111011111  exp=10101  -> ms_round=0011111111 exp_round=10101        OK
-        RND#   ¯  ms=110001011010000  exp=10100  -> ms_round=1100010110 exp_round=10100        OK
-        RND#   °  ms=001111100001001  exp=01110  -> ms_round=0011111000 exp_round=01110        OK
-        RND#   ±  ms=111111010110010  exp=01101  -> ms_round=1111110110 exp_round=01101        OK
-        RND#   ²  ms=111010100111011  exp=11110  -> ms_round=1110101010 exp_round=11110        OK
-        RND#   ³  ms=000010010011011  exp=01110  -> ms_round=0000100101 exp_round=01110        OK
-        RND#   ´  ms=100100100001100  exp=01100  -> ms_round=1001001000 exp_round=01100        OK
-        RND#   µ  ms=101010001101010  exp=01011  -> ms_round=1010100011 exp_round=01011        OK
-        RND#   ¶  ms=010111111011000  exp=00010  -> ms_round=0101111111 exp_round=00010        OK
-        RND#   ·  ms=011001111101101  exp=11101  -> ms_round=0110011111 exp_round=11101        OK
-        RND#   ¸  ms=110011100111111  exp=11000  -> ms_round=1100111010 exp_round=11000        OK
-        RND#   ¹  ms=011111100010110  exp=10001  -> ms_round=0111111001 exp_round=10001        OK
-        RND#   º  ms=001011001011010  exp=01010  -> ms_round=0010110011 exp_round=01010        OK
-        RND#   »  ms=111000001001100  exp=10101  -> ms_round=1110000010 exp_round=10101        OK
-        RND#   ¼  ms=010011010101111  exp=11000  -> ms_round=0100110101 exp_round=11000        OK
-        RND#   ½  ms=111110011011101  exp=11011  -> ms_round=1111100111 exp_round=11011        OK
-        RND#   ¾  ms=001010000100011  exp=00111  -> ms_round=0010100001 exp_round=00111        OK
-        RND#   ¿  ms=101000100000011  exp=01001  -> ms_round=1010001000 exp_round=01001        OK
-        RND#   À  ms=101000110100001  exp=10101  -> ms_round=1010001101 exp_round=10101        OK
-        RND#   Á  ms=100011011101110  exp=00100  -> ms_round=1000110111 exp_round=00100        OK
-        RND#   Â  ms=001100101011001  exp=00001  -> ms_round=0011001011 exp_round=00001        OK
-        RND#   Ã  ms=010100001110101  exp=01110  -> ms_round=0101000100 exp_round=01110   
+m1: 0000000000, m2: 0000000000
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+m1: 10000000000, m2: 10000000000, result: 0100000000000000000000
+m1: 0000000000, m2: 0000000000
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 0
+         ADD 1+1  op=00  a=0011110000000000  b=0011110000000000  => y=0100000000000000 (hex=4000)        OK
+m1: 1000000000, m2: 0000000000
+m1: 1000000000, m2: 0000000000
+m1: 11000000000, m2: 10000000000, result: 0110000000000000000000
+sign: 0, exp: 10001, mantisa: 0100000000, is_resta: 0
+sign: 0, exp: 10001, mantisa: 1000000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+         SUB 3-2  op=01  a=0100001000000000  b=0100000000000000  => y=0011110000000000 (hex=3c00)        OK
+m1: 0000000001, m2: 0000000001
+m1: 0000000001, m2: 0000000001
+m1: 10000000001, m2: 10000000001, result: 0100000000100000000001
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000010, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+ (1+ulp)*(1+ulp)  op=10  a=0011110000000001  b=0011110000000001  => y=0011110000000010 (hex=3c02)        OK
+m1: 1000000000, m2: 0000000001
+m1: 1000000000, m2: 0000000001
+m1: 11000000000, m2: 10000000001, result: 0110000000011000000000
+sign: 0, exp: 10000, mantisa: 0100000000, is_resta: 0
+sign: 0, exp: 01101, mantisa: 0000000100, is_resta: 1
+sign: 0, exp: 01111, mantisa: 1000000010, is_resta: 0
+UL 1.5 * (1+ulp)  op=10  a=0011111000000000  b=0011110000000001  => y=0011111000000010 (hex=3e02)        OK
+m1: 0000000001, m2: 0000000001
+m1: 0000000001, m2: 0000000001
+m1: 10000000001, m2: 10000000001, result: 0100000000100000000001
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0000000010, is_resta: 0
+ (1+ulp)*(1+ulp)  op=10  a=0011110000000001  b=0011110000000001  => y=0011110000000010 (hex=3c02)        OK
+m1: 1000000000, m2: 0000000001
+m1: 1000000000, m2: 0000000001
+m1: 11000000000, m2: 10000000001, result: 0110000000011000000000
+sign: 0, exp: 10000, mantisa: 0100000000, is_resta: 0
+sign: 0, exp: 01101, mantisa: 0000000100, is_resta: 1
+sign: 0, exp: 01111, mantisa: 1000000010, is_resta: 0
+UL 1.5 * (1+ulp)  op=10  a=0011111000000000  b=0011110000000001  => y=0011111000000010 (hex=3e02)        OK
+m1: 0000000010, m2: 0000000001
+m1: 0000000010, m2: 0000000001
+m1: 10000000010, m2: 10000000001, result: 0100000000110000000010
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+sign: 0, exp: 00101, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0000000011, is_resta: 0
+(1+2ulp)*(1+ulp)  op=10  a=0011110000000010  b=0011110000000001  => y=0011110000000011 (hex=3c03)        OK
+m1: 0100000000, m2: 0000000001
+m1: 0100000000, m2: 0000000001
+m1: 10100000000, m2: 10000000001, result: 0101000000010100000000
+sign: 0, exp: 10000, mantisa: 0010000000, is_resta: 0
+sign: 0, exp: 01100, mantisa: 0000001000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0100000001, is_resta: 0
+L 1.25 * (1+ulp)  op=10  a=0011110100000000  b=0011110000000001  => y=0011110100000001 (hex=3d01)        OK
+m1: 0111111111, m2: 0111111111
+m1: 0111111111, m2: 0111111111
+m1: 10111111111, m2: 10111111111, result: 1000111111010000000001
+sign: 0, exp: 10000, mantisa: 0111111111, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0001111110, is_resta: 0
+5-ulp)*(1.5-ulp)  op=10  a=0011110111111111  b=0011110111111111  => y=0100000001111110 (hex=407e)  MISMATCH
+m1: 1100000000, m2: 0000000001
+m1: 1100000000, m2: 0000000001
+m1: 11100000000, m2: 10000000001, result: 0111000000011100000000
+sign: 0, exp: 10000, mantisa: 0110000000, is_resta: 0
+sign: 0, exp: 01110, mantisa: 1000000010, is_resta: 1
+sign: 0, exp: 01111, mantisa: 1100000010, is_resta: 0
+L 1.75 * (1+ulp)  op=10  a=0011111100000000  b=0011110000000001  => y=0011111100000010 (hex=3f02)        OK
+m1: 0000000011, m2: 0000000011
+m1: 0000000011, m2: 0000000011
+m1: 10000000011, m2: 10000000011, result: 0100000001100000001001
+sign: 0, exp: 10000, mantisa: 0000000011, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0000000110, is_resta: 0
+1+3ulp)*(1+3ulp)  op=10  a=0011110000000011  b=0011110000000011  => y=0011110000000110 (hex=3c06)        OK
+m1: 0010000000, m2: 0000000001
+m1: 0010000000, m2: 0000000001
+m1: 10010000000, m2: 10000000001, result: 0100100000010010000000
+sign: 0, exp: 10000, mantisa: 0001000000, is_resta: 0
+sign: 0, exp: 01011, mantisa: 0000010000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0010000001, is_resta: 0
+ 1.125 * (1+ulp)  op=10  a=0011110010000000  b=0011110000000001  => y=0011110010000001 (hex=3c81)        OK
+m1: 0000000001, m2: 0000000000
+m1: 1000000000, m2: 0000000000
+m1: 10000000001, m2: 10000000000, result: 0100000000010000000000
+sign: 1, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 1000000000, is_resta: 0
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+UL (1+ulp) * 2.0  op=10  a=0011110000000001  b=0100000000000000  => y=0100000000000001 (hex=4001)        OK
+m1: 1000000000, m2: 1000000000
+m1: 1000000000, m2: 1000000000
+m1: 11000000000, m2: 11000000000, result: 1001000000000000000000
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 10000, mantisa: 0010000000, is_resta: 0
+5 * 1.5 (exacto)  op=10  a=0011111000000000  b=0011111000000000  => y=0100000010000000 (hex=4080)        OK
+m1: 0000000001, m2: 1000000000
+m1: 0000000001, m2: 1000000000
+m1: 10000000001, m2: 11000000000, result: 0110000000011000000000
+sign: 1, exp: 01101, mantisa: 1111111100, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0100000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 1000000010, is_resta: 0
+UL (1+ulp) * 1.5  op=10  a=0011110000000001  b=0011111000000000  => y=0011111000000010 (hex=3e02)        OK
+m1: 1111111111, m2: 0000000010
+m1: 1111111111, m2: 0000000010
+m1: 11111111111, m2: 10000000010, result: 1000000000101111111110
+sign: 0, exp: 01110, mantisa: 0000000110, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+-ulp) * (1+2ulp)  op=10  a=0011111111111111  b=0011110000000010  => y=0100000000000001 (hex=4001)        OK
+m1: 0010000000, m2: 1000000000
+m1: 0010000000, m2: 1000000000
+m1: 10010000000, m2: 11000000000, result: 0110110000000000000000
+sign: 1, exp: 01101, mantisa: 1000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0101000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 1011000000, is_resta: 0
+ 1.5 (tie LSB=0)  op=10  a=0011110010000000  b=0011111000000000  => y=0011111011000000 (hex=3ec0)        OK
+m1: 0110000000, m2: 1000000000
+m1: 0110000000, m2: 1000000000
+m1: 10110000000, m2: 11000000000, result: 1000010000000000000000
+sign: 0, exp: 10000, mantisa: 0111000000, is_resta: 0
+sign: 1, exp: 01100, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000100000, is_resta: 0
+ 1.5 (tie LSB=1)  op=10  a=0011110110000000  b=0011111000000000  => y=0100000000100000 (hex=4020)  MISMATCH
+m1: 0001100110, m2: 0011001101
+m1: 0001100110, m2: 0011001101
+m1: 10001100110, m2: 10011001101, result: 0101010001110110101110
+sign: 0, exp: 10000, mantisa: 0010011001, is_resta: 0
+sign: 1, exp: 01011, mantisa: 1001110000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0101000111, is_resta: 0
+.2 (g=1,r=1,s=1)  op=10  a=0011110001100110  b=0011110011001101  => y=0011110101000111 (hex=3d47)  MISMATCH
+m1: 0001100110, m2: 1011001101
+m1: 0001100110, m2: 1011001101
+m1: 10001100110, m2: 11011001101, result: 0111011110100110101110
+sign: 0, exp: 10000, mantisa: 0110011001, is_resta: 0
+sign: 1, exp: 01110, mantisa: 0011001110, is_resta: 1
+sign: 0, exp: 01111, mantisa: 1101111010, is_resta: 0
+.7 (g=1,r=0,s=1)  op=10  a=0011110001100110  b=0011111011001101  => y=0011111101111010 (hex=3f7a)  MISMATCH
+m1: 0100110011, m2: 0110011010
+m1: 0100110011, m2: 0110011010
+m1: 10100110011, m2: 10110011010, result: 0111010001111110101110
+sign: 0, exp: 10000, mantisa: 0101100110, is_resta: 0
+sign: 1, exp: 01011, mantisa: 1001110000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 1101001000, is_resta: 0
+.4 (g=0,r=1,s=1)  op=10  a=0011110100110011  b=0011110110011010  => y=0011111101001000 (hex=3f48)  MISMATCH
+m1: 0000000001, m2: 0000000001
+m1: 0000000001, m2: 0000000001
+m1: 10000000001, m2: 10000000001, result: 0100000000100000000001
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000010, is_resta: 0
+equeño*(pequÿño)  op=10  a=0011110000000001  b=0011110000000001  => y=0011110000000010 (hex=3c02)        OK
+m1: 1110000000, m2: 1110000000
+m1: 1110000000, m2: 1110000000
+m1: 11110000000, m2: 11110000000, result: 1110000100000000000000
+sign: 0, exp: 10000, mantisa: 0110000000, is_resta: 0
+sign: 0, exp: 10000, mantisa: 1100001000, is_resta: 0
+* 1.875 (exacto)  op=10  a=0011111110000000  b=0011111110000000  => y=0100001100001000 (hex=4308)        OK
+m1: 0001000000, m2: 0001000000
+m1: 0001000000, m2: 0001000000
+m1: 10001000000, m2: 10001000000, result: 0100100001000000000000
+sign: 0, exp: 10000, mantisa: 0001000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0010000100, is_resta: 0
+ 1.0625 * 1.0625  op=10  a=0011110001000000  b=0011110001000000  => y=0011110010000100 (hex=3c84)  MISMATCH
+m1: 1111111111, m2: 0000000000
+m1: 1111111111, m2: 0000000000
+m1: 11111111111, m2: 10000000000, result: 0111111111110000000000
+sign: 1, exp: 00110, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 1111111111, is_resta: 0
+sign: 0, exp: 10000, mantisa: 1111111111, is_resta: 0
+UL (2-ulp) * 2.0  op=10  a=0011111111111111  b=0100000000000000  => y=0100001111111111 (hex=43ff)        OK
+m1: 0000000001, m2: 0000000001
+m1: 0000000001, m2: 0000000001
+m1: 10000000001, m2: 10000000001, result: 0100000000100000000001
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000000001, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000010, is_resta: 0
+UL minimo*minimo  op=10  a=0011110000000001  b=0011110000000001  => y=0011110000000010 (hex=3c02)        OK
+m1: 0101010101, m2: 0101010101
+m1: 0101010101, m2: 0101010101
+m1: 10101010101, m2: 10101010101, result: 0111000110111000111001
+sign: 0, exp: 10000, mantisa: 0101010101, is_resta: 0
+sign: 0, exp: 01111, mantisa: 1100011100, is_resta: 0
+n_alt*patron_alt  op=10  a=0011110101010101  b=0011110101010101  => y=0011111100011100 (hex=3f1c)        OK
+m1: 1110011010, m2: 0001100110
+m1: 1110011010, m2: 0001100110
+m1: 11110011010, m2: 10001100110, result: 1000010110111101011100
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 01110, mantisa: 0110011000, is_resta: 1
+sign: 0, exp: 10000, mantisa: 0000101110, is_resta: 0
+   MUL 1.9 * 1.1  op=10  a=0011111110011010  b=0011110001100110  => y=0100000000101110 (hex=402e)  MISMATCH
+   MUL 1.9 * 1.1  op=10  a=0011111110011010  b=0011110001100110  => y=0100000000101110 (hex=402e)  MISMATCH
+m1: 0000000000, m2: 0000000000
+m1: 0000000000, m2: 0000000000
+m1: 10000000000, m2: 10000000000, result: 0100000000000000000000
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 0
+ 1.0 * 1.0 = 1.0  op=10  a=0011110000000000  b=0011110000000000  => y=0011110000000000 (hex=3c00)        OK
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 01101, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 01110, mantisa: 0000000000, is_resta: 1
+0.5 * 0.5 = 0.25  op=10  a=0011100000000000  b=0011100000000000  => y=0011010000000000 (hex=3400)        OK
+m1: 1000000000, m2: 1000000000
+m1: 1000000000, m2: 1000000000
+m1: 11000000000, m2: 11000000000, result: 1001000000000000000000
+sign: 0, exp: 10000, mantisa: 0000000000, is_resta: 0
+sign: 0, exp: 10000, mantisa: 0010000000, is_resta: 0
+sign: 0, exp: 01111, mantisa: 0000000000, is_resta: 1
+1.5 * 1.5 = 2.25  op=10  a=0011111000000000  b=0011111000000000  => y=0100000010000000 (hex=4080)        OK
+m1: 1000000000, m2: 0000000000
+m1: 1000000000, m2: 0100000000
+m1: 11000000000, m2: 10000000000, result: 0110000000000000000000
+sign: 0, ex

@@ -79,7 +79,7 @@ module Prod(Sm, Rm, ExpIn, Fm, ExpOut);
   
 function [4:0] first_one;
   
-  input [20:0] bits;
+  input [21:0] bits;
   integer idx;
   reg found;
   
@@ -87,9 +87,9 @@ function [4:0] first_one;
     found = 0;
     first_one = 5'b00000; 
     
-    for (idx = 18; idx >= 9 && !found; idx = idx - 1) begin
+    for (idx = 20; idx >= 0 && !found; idx = idx - 1) begin
       if (bits[idx]) begin
-        first_one = (20 - idx);
+        first_one = (21 - idx);
         found = 1;
       end
     end
@@ -112,16 +112,41 @@ endfunction
   wire [4:0] shifts = (ShiftCondition) ? first_one(Result) : 5'b00000;  
   
   // Rescato los 10 bits más significativos
-  wire [9:0] Fm_out = (Debe) ? Result[20:11] : Result[19:10];
+  //wire [9:0] Fm_out = (Debe) ? Result[20:11] : Result[19:10];
   
   // Si estamos 1x.xx, sumo uno al exponente para que quede 1.xxx
   // Si estamos en el caso de 1.xx o 0.xx, resto la cantidad de veces necesaria
   // hasta encontrar el primer 1 (en 1.xx -> shifts = 0)
-  assign ExpOut = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
+  //assign ExpOut = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
   
   // La misma idea que ExpOut, pero ahora afectando a la mantisa.
-  assign Fm = (Debe) ? Fm_out : (Fm_out >> shifts);
-  
+  //assign Fm = (Debe) ? Fm_out : (Fm_out >> shifts);
+  // Exponente previo a redondeo (misma lógica que ya tenías)
+wire [4:0] exp_pre = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
+
+// Construimos un "stream" para sacar top10/guard/rest y sticky
+wire [27:0] stream0 = {Result[20:0], 6'b0};            // relleno para sticky
+wire [27:0] stream1 = Debe ? (stream0 >> 11) : (stream0 >> 10);
+wire [27:0] stream2 = ShiftCondition ? (stream1 >> shifts) : stream1;
+
+// top10 (10), guard (1), rest3 (3) + sticky (1)
+wire [9:0] top10  = stream2[15:6];
+wire       guard  = stream2[5];
+wire [2:0] rest3  = stream2[4:2];
+wire       sticky = |stream2[1:0];                     // OR de lo que queda
+wire [3:0] rest4  = {rest3, sticky};
+
+// Paquete de 15 bits para el redondeo
+wire [14:0] ms15 = {top10, guard, rest4};
+
+// Redondeo al par
+wire [9:0] frac_rnd;
+wire [4:0] exp_rnd;
+RoundNearestEven rne_mul(.ms(ms15), .exp(exp_pre), .ms_round(frac_rnd), .exp_round(exp_rnd));
+
+// Salidas finales de Prod
+assign Fm     = frac_rnd;
+assign ExpOut = exp_rnd;
 endmodule
 
 
