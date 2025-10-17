@@ -22,49 +22,53 @@
 module Division(Sm, Rm, ExpIn, Fm, ExpOut);
   input [10:0] Sm, Rm;
   input [4:0] ExpIn;
+  wire [14:0] FauxWithoutRound;
+
   output wire [9:0] Fm;
   output wire [4:0] ExpOut;
   
   function [4:0] first_one_div;
-  input [11:0] bits;
-  integer idx;
-  reg found;
-  
-  begin
-    found = 0;
-    first_one_div = 5'b00000; 
+    input [16:0] bits;
+    integer idx;
+    reg found;
     
-    for (idx = 10; idx >= 0 && !found; idx = idx - 1) begin
-      if (bits[idx]) begin
-        first_one_div = (11 - idx);
-        found = 1;
+    begin
+      found = 0;
+      first_one_div = 5'b00000; 
+      
+      for (idx = 14; idx >= 0 && !found; idx = idx - 1) begin
+        if (bits[idx]) begin
+          first_one_div = (15 - idx);
+          found = 1;
+        end
       end
+
     end
-
-  end
   
-endfunction
+  endfunction
   
-  wire [21:0] Result = {Sm, 11'b0} / Rm;
-  wire [12:0] Faux = Result[12:0];
+  wire [24:0] Result = {Sm, 15'b0} / Rm;
+  wire [16:0] Faux = Result[16:0];
 
-  wire Debe = Faux[12];
-  wire ShiftCondition = !Debe && !Faux[11];
+  wire Debe = Faux[16];
+  wire ShiftCondition = !Debe && !Faux[15];
   
   wire [4:0] shifts = (ShiftCondition) ? first_one_div(Faux) : 5'b00000;  
   
-  wire [9:0] Fm_out = (Debe) ? Faux[11:2] : Result[10:1];
+  wire [14:0] Fm_out = (Debe) ? Faux[15:1] : Faux[14:0];
 
-  assign ExpOut = (Debe) ? (ExpIn ) : (ExpIn - shifts);
+  wire[4:0] ExpOut_temp = (Debe) ? (ExpIn) : (ExpIn - shifts);
+  assign FauxWithoutRound = (Debe) ? Fm_out : (Fm_out >> shifts); 
   
-  assign Fm = (Debe) ? Fm_out : (Fm_out >> shifts);
-  
-  /*
-  initial begin
-    $monitor("result: %b, faux: %b, Fout: %b, ExpIn: %b, ExpOut: %b, SC: %b", Result, Faux, Fm, ExpIn, ExpOut, ShiftCondition);
-  
-  end
-  */
+
+
+  RoundNearestEven rounder(
+    .ms(FauxWithoutRound),
+    .exp(ExpOut_temp),
+    .ms_round(Fm),
+    .exp_round(ExpOut)
+  );
+
 endmodule
 
 
