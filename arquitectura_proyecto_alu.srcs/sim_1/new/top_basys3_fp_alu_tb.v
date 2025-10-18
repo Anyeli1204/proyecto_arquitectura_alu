@@ -10,20 +10,21 @@ module top_basys3_fp_alu_full_tb;
   wire [3:0]   AN;
   wire         CA,CB,CC,CD,CE,CF,CG,DP;
 
-  // Instancia del TOP (sin wrapper)
+  // Instancia del TOP (el que usa el wrapper fp_alu)
   top_basys3_fp_alu UUT(
     .CLK100MHZ(CLK100MHZ), .SW(SW),
     .BTNC(BTNC), .BTNU(BTNU), .BTND(BTND), .BTNL(BTNL), .BTNR(BTNR),
     .LED(LED), .AN(AN), .CA(CA), .CB(CB), .CC(CC), .CD(CD), .CE(CE), .CF(CF), .CG(CG), .DP(DP)
   );
 
-  // Reloj 100 MHz
+  // Clock 100 MHz
   always #5 CLK100MHZ = ~CLK100MHZ;
 
-  // ====== Accesos jerárquicos útiles (resultado/flags/valid) ======
-  wire [31:0] R = UUT.result;        // resultado capturado en el TOP
-  wire [4:0]  F = UUT.flags;         // {invalid(4), div0(3), ovf(2), unf(1), inx(0)}
-  wire        V = UUT.valid_out;
+  // ====== Accesos jerárquicos correctos para tu top con wrapper ======
+  // En tu top: result se llama 'y', flags -> 'flags_wrapped', valid_out -> 'valid'
+  wire [31:0] R = UUT.y;
+  wire [4:0]  F = UUT.flags_wrapped;  // {invalid(4), div0(3), ovf(2), unf(1), inx(0)}
+  wire        V = UUT.valid;
 
   // ====== Helpers de botones (3 ciclos por el sincronizador 2FF) ======
   task press_start; begin BTNC=1; repeat(3) @(posedge CLK100MHZ); BTNC=0; end endtask
@@ -36,7 +37,7 @@ module top_basys3_fp_alu_full_tb;
   task set_mode;  input single32;       begin SW[11]   = single32; end endtask
   task set_sel_b; input is_b;           begin SW[8]    = is_b;     end endtask
   task set_op;    input [1:0] op2;      begin SW[10:9] = op2;      end endtask
-  task show_msb;  input bit on;         begin SW[14]   = on;       end endtask
+  task show_msb;  input on;             begin SW[14]   = on;       end endtask
 
   // Espera valid_out con timeout
   task wait_for_valid;
@@ -115,7 +116,7 @@ module top_basys3_fp_alu_full_tb;
     end
   endtask
 
-  // Check NaN (exp=all1 y mantisa!=0)
+  // Check NaN
   function is_nan16; input [15:0] x;
     begin is_nan16 = (x[14:10]==5'b11111) && (x[9:0]!=10'b0); end
   endfunction
@@ -125,158 +126,95 @@ module top_basys3_fp_alu_full_tb;
 
   // ====== Secuencia de pruebas ======
   initial begin
-    // Reset inicial
+    // Reset
     SW = 16'h0000; BTNC=0; BTNU=0; BTND=0; BTNL=0; BTNR=0;
     repeat(5) @(posedge CLK100MHZ);
     press_reset(); repeat(2) @(posedge CLK100MHZ);
 
-    // ============================
-    // 1) OPERACIONES CON ENTEROS
-    // ============================
+    // 1) ENTEROS (half + single)
+    load_half(1'b0, HP_ONE);  load_half(1'b1, HP_TWO);
+    set_op(2'b00); press_start(); wait_for_valid();  check_half(HP_THREE, "ADD 1+2");
 
-    // ---- HALF: 1 + 2 = 3
-    load_half(1'b0, HP_ONE);  // A
-    load_half(1'b1, HP_TWO);  // B
-    set_op(2'b00); press_start(); wait_for_valid();
-    check_half(HP_THREE, "ADD 1+2");
-
-    // HALF: 5 - 3 = 2
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_FIVE);
-    load_half(1'b1, HP_THREE);
-    set_op(2'b01); press_start(); wait_for_valid();
-    check_half(HP_TWO, "SUB 5-3");
+    load_half(1'b0, HP_FIVE); load_half(1'b1, HP_THREE);
+    set_op(2'b01); press_start(); wait_for_valid();  check_half(HP_TWO, "SUB 5-3");
 
-    // HALF: 2 * (-3) = -6
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_TWO);
-    load_half(1'b1, HP_NEG3);
-    set_op(2'b10); press_start(); wait_for_valid();
-    check_half(16'hC600, "MUL 2*(-3)"); // -6.0
+    load_half(1'b0, HP_TWO);  load_half(1'b1, HP_NEG3);
+    set_op(2'b10); press_start(); wait_for_valid();  check_half(16'hC600, "MUL 2*(-3)");
 
-    // HALF: 6 / 3 = 2
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_SIX);
-    load_half(1'b1, HP_THREE);
-    set_op(2'b11); press_start(); wait_for_valid();
-    check_half(HP_TWO, "DIV 6/3");
+    load_half(1'b0, HP_SIX);  load_half(1'b1, HP_THREE);
+    set_op(2'b11); press_start(); wait_for_valid();  check_half(HP_TWO, "DIV 6/3");
 
-    // ---- SINGLE: 1 + 2 = 3
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_ONE);
-    load_single(1'b1, SP_TWO);
-    set_op(2'b00); press_start(); wait_for_valid();
-    check_single(SP_THREE, "ADD 1+2");
+    load_single(1'b0, SP_ONE);  load_single(1'b1, SP_TWO);
+    set_op(2'b00); press_start(); wait_for_valid();  check_single(SP_THREE, "ADD 1+2");
 
-    // SINGLE: 5 - 3 = 2
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_FIVE);
-    load_single(1'b1, SP_THREE);
-    set_op(2'b01); press_start(); wait_for_valid();
-    check_single(SP_TWO, "SUB 5-3");
+    load_single(1'b0, SP_FIVE); load_single(1'b1, SP_THREE);
+    set_op(2'b01); press_start(); wait_for_valid();  check_single(SP_TWO, "SUB 5-3");
 
-    // SINGLE: 2 * (-3) = -6
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_TWO);
-    load_single(1'b1, SP_NEG3);
-    set_op(2'b10); press_start(); wait_for_valid();
-    check_single(32'hC0C00000, "MUL 2*(-3)"); // -6.0
+    load_single(1'b0, SP_TWO);  load_single(1'b1, SP_NEG3);
+    set_op(2'b10); press_start(); wait_for_valid();  check_single(32'hC0C00000, "MUL 2*(-3)");
 
-    // SINGLE: 6 / 3 = 2
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_SIX);
-    load_single(1'b1, SP_THREE);
-    set_op(2'b11); press_start(); wait_for_valid();
-    check_single(SP_TWO, "DIV 6/3");
+    load_single(1'b0, SP_SIX);  load_single(1'b1, SP_THREE);
+    set_op(2'b11); press_start(); wait_for_valid();  check_single(SP_TWO, "DIV 6/3");
 
-    // ============================
-    // 2) OPERACIONES CON DECIMALES
-    // ============================
-
-    // ---- HALF: 3.5 + 0.25 = 3.75
+    // 2) DECIMALES
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_THREEP5);
-    load_half(1'b1, HP_QTR);
-    set_op(2'b00); press_start(); wait_for_valid();
-    check_half(HP_THREEP75, "ADD 3.5+0.25");
+    load_half(1'b0, HP_THREEP5); load_half(1'b1, HP_QTR);
+    set_op(2'b00); press_start(); wait_for_valid();  check_half(HP_THREEP75, "ADD 3.5+0.25");
 
-    // ---- SINGLE: 1.5 + 2.25 = 3.75
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_ONEP5);
-    load_single(1'b1, 32'h40100000); // 2.25
-    set_op(2'b00); press_start(); wait_for_valid();
-    check_single(SP_THREEP75, "ADD 1.5+2.25");
+    load_single(1'b0, SP_ONEP5); load_single(1'b1, 32'h40100000);
+    set_op(2'b00); press_start(); wait_for_valid();  check_single(32'h40700000, "ADD 1.5+2.25");
 
-    // SINGLE: 1.5 * 2.5 = 3.75
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_ONEP5);
-    load_single(1'b1, SP_TWOP5);
-    set_op(2'b10); press_start(); wait_for_valid();
-    check_single(SP_THREEP75, "MUL 1.5*2.5");
+    load_single(1'b0, SP_ONEP5); load_single(1'b1, SP_TWOP5);
+    set_op(2'b10); press_start(); wait_for_valid();  check_single(32'h40700000, "MUL 1.5*2.5");
 
-    // SINGLE: 7.5 / 2.5 = 3.0
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_SEVENP5);
-    load_single(1'b1, SP_TWOP5);
-    set_op(2'b11); press_start(); wait_for_valid();
-    check_single(SP_THREE, "DIV 7.5/2.5");
+    load_single(1'b0, 32'h40F00000); load_single(1'b1, SP_TWOP5);
+    set_op(2'b11); press_start(); wait_for_valid();  check_single(SP_THREE, "DIV 7.5/2.5");
 
-    // ============================
     // 3) CASOS ESPECIALES
-    // ============================
-
-    // ---- SINGLE: 1.0 / +0.0 = +Inf, div0=1, invalid=0
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_ONE);
-    load_single(1'b1, SP_POS0);
+    load_single(1'b0, SP_ONE); load_single(1'b1, SP_POS0);
     set_op(2'b11); press_start(); wait_for_valid();
     check_single(SP_PINF, "DIV 1.0/+0.0 -> +Inf");
     if (F[3] !== 1'b1) begin $display("ERROR flags: div-by-zero no activo"); $stop; end
     if (F[4] !== 1'b0) begin $display("ERROR flags: invalid debería ser 0"); $stop; end
     $display("OK flags DIV/0 (+Inf, div0=1)");
 
-    // SINGLE: 0 * Inf = NaN, invalid=1
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_POS0);
-    load_single(1'b1, SP_PINF);
+    load_single(1'b0, SP_POS0); load_single(1'b1, SP_PINF);
     set_op(2'b10); press_start(); wait_for_valid();
-    if (!is_nan32(R)) begin
-      $display("ERROR 0*Inf: esperaba NaN, got=%h", R); $stop;
-    end
+    if (!is_nan32(R)) begin $display("ERROR 0*Inf: esperaba NaN, got=%h", R); $stop; end
     if (F[4] !== 1'b1) begin $display("ERROR flags: invalid no activo en 0*Inf"); $stop; end
     $display("OK 0*Inf -> NaN (invalid=1)");
 
-    // SINGLE: NaN + 1.0 = NaN (propagación)
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_single(1'b0, SP_QNAN);
-    load_single(1'b1, SP_ONE);
+    load_single(1'b0, SP_QNAN); load_single(1'b1, SP_ONE);
     set_op(2'b00); press_start(); wait_for_valid();
-    if (!is_nan32(R)) begin
-      $display("ERROR NaN+1.0: esperaba NaN, got=%h", R); $stop;
-    end
+    if (!is_nan32(R)) begin $display("ERROR NaN+1.0: esperaba NaN, got=%h", R); $stop; end
     $display("OK NaN propagation en ADD");
 
-    // ---- HALF: 1.0 / -0.0 = -Inf, div0=1
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_ONE);
-    load_half(1'b1, HP_NEG0);
+    load_half(1'b0, HP_ONE); load_half(1'b1, HP_NEG0);
     set_op(2'b11); press_start(); wait_for_valid();
-    if (R[15:0] !== 16'hFC00) begin
-      $display("ERROR HALF DIV 1/(-0): got=%h exp=%h", R[15:0], 16'hFC00); $stop;
-    end
-    if (F[3] !== 1'b1) begin $display("ERROR HALF DIV 1/(-0): div0 no activo"); $stop; end
+    if (R[15:0] !== 16'hFC00) begin $display("ERROR HALF 1/(-0): got=%h exp=%h", R[15:0], 16'hFC00); $stop; end
+    if (F[3] !== 1'b1) begin $display("ERROR HALF 1/(-0): div0 no activo"); $stop; end
     $display("OK HALF 1/(-0) -> -Inf");
 
-    // HALF: 0 * Inf = NaN, invalid=1
     press_reset(); repeat(2) @(posedge CLK100MHZ);
-    load_half(1'b0, HP_POS0);
-    load_half(1'b1, HP_PINF);
+    load_half(1'b0, HP_POS0); load_half(1'b1, HP_PINF);
     set_op(2'b10); press_start(); wait_for_valid();
-    if (!is_nan16(R[15:0])) begin
-      $display("ERROR HALF 0*Inf: esperaba NaN, got=%h", R[15:0]); $stop;
-    end
+    if (!is_nan16(R[15:0])) begin $display("ERROR HALF 0*Inf: esperaba NaN, got=%h", R[15:0]); $stop; end
     if (F[4] !== 1'b1) begin $display("ERROR HALF flags: invalid no activo en 0*Inf"); $stop; end
-    $display("OK HALF 0*Inf -> NaN (invalid=1)");
+    $display("OK HALF 0*Inf -> NaN");
 
     $display("? TODAS LAS PRUEBAS PASARON.");
     $finish;

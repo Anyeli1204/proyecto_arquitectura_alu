@@ -33,14 +33,6 @@ INFO: [VRFC 10-311] analyzing module fp16_classifier
 INFO: [VRFC 10-311] analyzing module fp16_special_values
 INFO: [VRFC 10-311] analyzing module fp16_special_case_handler
 INFO: [VRFC 10-311] analyzing module fp16_flags
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_fp16_alu_basic
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu_bin.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_alu_bin
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo_extras.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven_more
 INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sources_1/new/top_basys3_fp_alu.v" into library xil_defaultlib
 INFO: [VRFC 10-311] analyzing module fp_alu
 INFO: [VRFC 10-311] analyzing module sync_2ff
@@ -50,6 +42,3 @@ INFO: [VRFC 10-311] analyzing module sevenseg_mux
 INFO: [VRFC 10-311] analyzing module top_basys3_fp_alu
 INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/top_basys3_fp_alu_tb.v" into library xil_defaultlib
 INFO: [VRFC 10-311] analyzing module top_basys3_fp_alu_full_tb
-ERROR: [VRFC 10-2939] 'bit' is an unknown type [C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/top_basys3_fp_alu_tb.v:39]
-ERROR: [VRFC 10-2989] 'bit' is not declared [C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/top_basys3_fp_alu_tb.v:39]
-ERROR: [VRFC 10-8530] module 'top_basys3_fp_alu_full_tb' is ignored due to previous errors [C:/Users/Usuario/alu_funcional/arquitectura_proyecto_alu.srcs/sim_1/new/top_basys3_fp_alu_tb.v:3]

@@ -1,58 +1,41 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 17.10.2025 16:38:16
-// Design Name: 
-// Module Name: flags_operations
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
-module is_overflow(Exp, AddExp, OverFlow);
-  input [4:0] Exp;
-  input [4:0] AddExp;
+module is_overflow #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
+(Exp, AddExp, OverFlow);
+  input [EBS:0] Exp;
+  input [EBS:0] AddExp;
   output OverFlow;
  
-  wire [5:0] NewExp = Exp + AddExp;
+  wire [EBS+1:0] NewExp = Exp + AddExp;
   
-  assign OverFlow = (NewExp >= 6'b011111);
+  assign OverFlow = (NewExp >= {EBS+1{1'b1}});
   
   
 endmodule
 
-module is_underflow(Exp, SubExp, UnderFlow);
-  input [4:0] Exp;
-  input [4:0] SubExp;
+module is_underflow #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
+(Exp, SubExp, UnderFlow);
+  input [EBS:0] Exp;
+  input [EBS:0] SubExp;
   output UnderFlow;
   
   assign UnderFlow = ( SubExp > Exp );
   
 endmodule
 
-module is_inexact(Man, CarryOut, inexact);
+module is_inexact #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
+(Man, CarryOut, inexact);
   input CarryOut;
-  input [9:0] Man;
+  input [MBS:0] Man;
   output inexact;
   
   assign inexact = (Man[0] && CarryOut);
   
 endmodule
 
-module is_invalid_op(Exp1, Exp2, Man1, Man2, InvalidOp);
-  input [4:0] Exp1, Exp2;
-  input [9:0] Man1, Man2;
+module is_invalid_op #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
+(Exp1, Exp2, Man1, Man2, InvalidOp);
+
+  input [EBS:0] Exp1, Exp2;
+  input [MBS:0] Man1, Man2;
   output InvalidOp;
   
   wire is_inf_Val1 = (&Exp1 && ~|Man1);
