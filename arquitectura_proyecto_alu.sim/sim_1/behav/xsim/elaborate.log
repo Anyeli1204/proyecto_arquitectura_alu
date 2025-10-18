@@ -51,7 +51,7 @@ Compiling module xil_defaultlib.ProductHP(MBS=22,EBS=7,BS=31)
 Compiling module xil_defaultlib.Division(MBS=22,EBS=7,BS=31)
 Compiling module xil_defaultlib.DivHP(MBS=22,EBS=7,BS=31)
 Compiling module xil_defaultlib.alu(system=32)
-Compiling module xil_defaultlib.fp_alu
+Compiling module xil_defaultlib.fp_alu_default
 Compiling module xil_defaultlib.hex7
 Compiling module xil_defaultlib.sevenseg_mux
 Compiling module xil_defaultlib.top_basys3_fp_alu
