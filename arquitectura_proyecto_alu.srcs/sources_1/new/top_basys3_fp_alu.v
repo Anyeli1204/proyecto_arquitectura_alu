@@ -1,8 +1,10 @@
 // top_basys3_fp_alu.v
 `timescale 1ns/1ps
 
-//======================= Wrapper: adapta tu 'alu' al enunciado =======================
-module fp_alu (
+//======================= Wrapper: adapta 'alu' al enunciado =======================
+module fp_alu #(
+  parameter SUPPORT_SINGLE = 1  // pon 0 si aún no usas 32 bits
+)(
   input              clk,
   input              rst,
   input              start,
@@ -15,19 +17,32 @@ module fp_alu (
   output reg         valid_out,
   output reg   [4:0] flags        // {invalid, div0, ovf, unf, inx}
 );
-  wire [1:0] op2 = op_code[1:0];
+  wire [1:0] op2 = op_code[1:0]; // solo usamos 2 bits
 
-  // Instancias de tu ALU (combinacionales)
+  // ALU half
   wire [15:0] y16; wire [4:0] f16;
-  alu #(.system(16)) u_alu16 (.a(op_a[15:0]), .b(op_b[15:0]), .op(op2), .y(y16), .ALUFlags(f16));
+  alu #(.system(16)) u_alu16 (
+    .a(op_a[15:0]), .b(op_b[15:0]), .op(op2),
+    .y(y16), .ALUFlags(f16)
+  );
 
+  // ALU single (opcional)
   wire [31:0] y32; wire [4:0] f32;
-  alu #(.system(32)) u_alu32 (.a(op_a),        .b(op_b),        .op(op2), .y(y32), .ALUFlags(f32));
+  generate if (SUPPORT_SINGLE) begin : G_SINGLE
+    alu #(.system(32)) u_alu32 (
+      .a(op_a), .b(op_b), .op(op2),
+      .y(y32), .ALUFlags(f32)
+    );
+  end else begin : G_NOSINGLE
+    assign y32 = 32'h0000_0000;
+    assign f32 = 5'b0;
+  end endgenerate
 
+  // Multiplexor de salida (combi)
   reg [31:0] next_result; reg [4:0] next_flags;
   always @* begin
     if (!mode_fp) begin
-      next_result = {16'b0, y16}; // half: válido en 16 LSB
+      next_result = {16'b0, y16}; // half en LSBs
       next_flags  = f16;
     end else begin
       next_result = y32;
@@ -35,7 +50,7 @@ module fp_alu (
     end
   end
 
-  // Handshake: captura en un ciclo de start
+  // Handshake: captura en el ciclo con start=1
   always @(posedge clk or posedge rst) begin
     if (rst) begin
       result    <= 32'b0;
@@ -65,15 +80,28 @@ module edge_up(input clk, input btn_raw, output pulse);
   assign pulse = s & ~s_d;
 endmodule
 
-//========================= 7 segmentos (anodo común) =========================
+// ========================= 7 segmentos (ÁNODO COMÚN, activo en BAJO) =========================
 module hex7(input [3:0] nib, output reg [6:0] seg);
+  // seg = {a,b,c,d,e,f,g} ; 0 enciende
   always @* begin
     case(nib)
-      4'h0: seg=7'b1000000; 4'h1: seg=7'b1111001; 4'h2: seg=7'b0100100; 4'h3: seg=7'b0110000;
-      4'h4: seg=7'b0011001; 4'h5: seg=7'b0010010; 4'h6: seg=7'b0000010; 4'h7: seg=7'b1111000;
-      4'h8: seg=7'b0000000; 4'h9: seg=7'b0010000; 4'hA: seg=7'b0001000; 4'hB: seg=7'b0000011;
-      4'hC: seg=7'b1000110; 4'hD: seg=7'b0100001; 4'hE: seg=7'b0000110; 4'hF: seg=7'b0001110;
-      default: seg=7'b1111111;
+      4'h0: seg = 7'b0000001;
+      4'h1: seg = 7'b1001111;
+      4'h2: seg = 7'b0010010;
+      4'h3: seg = 7'b0000110;
+      4'h4: seg = 7'b1001100;
+      4'h5: seg = 7'b0100100;
+      4'h6: seg = 7'b0100000;
+      4'h7: seg = 7'b0001111;
+      4'h8: seg = 7'b0000000;
+      4'h9: seg = 7'b0000100;
+      4'hA: seg = 7'b0001000;
+      4'hB: seg = 7'b1100000;
+      4'hC: seg = 7'b0110001;
+      4'hD: seg = 7'b1000010;
+      4'hE: seg = 7'b0110000;
+      4'hF: seg = 7'b0111000;
+      default: seg = 7'b1111111;
     endcase
   end
 endmodule
@@ -81,12 +109,12 @@ endmodule
 module sevenseg_mux(
   input        clk,           // 100 MHz
   input [15:0] value,         // 4 nibbles HEX
-  output reg [3:0] an,        // anodos (activo en bajo)
-  output reg [6:0] seg,       // segmentos (activo en bajo)
+  output reg [3:0] an,        // ánodos (activos en bajo)
+  output reg [6:0] seg,       // segmentos (activos en bajo)
   output       dp
 );
-  assign dp = 1'b1; // apagado
-  reg [15:0] refresh_cnt = 16'd0;  // init para evitar X en sim
+  assign dp = 1'b1; // punto apagado
+  reg [15:0] refresh_cnt = 16'd0;
   always @(posedge clk) refresh_cnt <= refresh_cnt + 1'b1;
 
   wire [1:0] sel = refresh_cnt[15:14];
@@ -99,13 +127,16 @@ module sevenseg_mux(
       2'b11: begin an=4'b0111; nib=value[15:12]; end
     endcase
   end
+
   wire [6:0] seg_w;
   hex7 uhex(nib, seg_w);
   always @* seg = seg_w;
 endmodule
 
 //======================== TOP Basys3: carga por bloques de 8 bits ========================
-module top_basys3_fp_alu(
+module top_basys3_fp_alu #(
+  parameter SUPPORT_SINGLE = 1
+)(
   input         CLK100MHZ,
   input  [15:0] SW,
   input         BTNC, BTNU, BTND, BTNL, BTNR,
@@ -120,12 +151,12 @@ module top_basys3_fp_alu(
 
   //--------------- UI (switches) ---------------
   wire [7:0] data_byte  = SW[7:0];
-  wire       sel_b      = SW[8];
-  wire [1:0] op2        = SW[10:9];
-  wire       mode_fp    = SW[11];
-  wire [1:0] round_md   = SW[13:12];
+  wire       sel_b      = SW[8];      // 0=A, 1=B
+  wire [1:0] op2        = SW[10:9];   // 00=ADD,01=SUB,10=MUL,11=DIV
+  wire       mode_fp    = SW[11];     // 0=half, 1=single
+  wire [1:0] round_md   = SW[13:12];  // reservado
   wire       show_upper = SW[14];
-  wire       progress_mode = SW[15];   // NUEVO: LEDs de progreso visual
+  wire       progress_mode = SW[15];  // LEDs de progreso
 
   //--------------- Botones (sincronizados) ---------------
   wire p_start, p_reset, p_load, p_next;
@@ -141,7 +172,7 @@ module top_basys3_fp_alu(
     if (rst_sync) chunk_idx <= 2'd0;
     else if (p_next) begin
       if (!mode_fp) chunk_idx <= (chunk_idx==2'd1) ? 2'd0 : (chunk_idx + 1'b1);
-      else          chunk_idx <= chunk_idx + 1'b1;
+      else          chunk_idx <= chunk_idx + 1'b1; // wrap natural en 2 bits
     end
   end
 
@@ -195,7 +226,7 @@ module top_basys3_fp_alu(
   wire [31:0] y;
   wire        valid;
   wire [4:0]  flags_wrapped; // {invalid, div0, ovf, unf, inx}
-  fp_alu DUT (
+  fp_alu #(.SUPPORT_SINGLE(SUPPORT_SINGLE)) DUT (
     .clk(CLK100MHZ), .rst(rst_sync), .start(p_start),
     .op_a(op_a), .op_b(op_b),
     .op_code({1'b0, op2}), .mode_fp(mode_fp), .round_mode(round_md),
@@ -217,19 +248,19 @@ module top_basys3_fp_alu(
 
   //--------------- LEDs (estado) ---------------
   wire [15:0] leds_status;
-  assign leds_status[0]   = flags_latch[0];    // inexact
-  assign leds_status[1]   = flags_latch[1];    // underflow
-  assign leds_status[2]   = flags_latch[2];    // overflow
-  assign leds_status[3]   = flags_latch[3];    // div-by-zero
-  assign leds_status[4]   = flags_latch[4];    // invalid
-  assign leds_status[5]   = 1'b0;              // libre
-  assign leds_status[6]   = valid;             // pulso "listo"
-  assign leds_status[7]   = sel_b;             // 0=A,1=B
-  assign leds_status[8]   = mode_fp;           // 0=half,1=single
-  assign leds_status[11:9]= {1'b0, op2};       // operación
-  assign leds_status[13:12]= chunk_idx;        // bloque actual
-  assign leds_status[14]  = show_upper;        // MSB/LSB en 7seg (single)
-  assign leds_status[15]  = slow_tick;         // tick visual
+  assign leds_status[0]    = flags_latch[0];    // inexact
+  assign leds_status[1]    = flags_latch[1];    // underflow
+  assign leds_status[2]    = flags_latch[2];    // overflow
+  assign leds_status[3]    = flags_latch[3];    // div-by-zero
+  assign leds_status[4]    = flags_latch[4];    // invalid
+  assign leds_status[5]    = 1'b0;              // libre
+  assign leds_status[6]    = valid;             // pulso "listo"
+  assign leds_status[7]    = sel_b;             // 0=A,1=B
+  assign leds_status[8]    = mode_fp;           // 0=half,1=single
+  assign leds_status[11:9] = {1'b0, op2};       // operación
+  assign leds_status[13:12]= chunk_idx;         // bloque actual
+  assign leds_status[14]   = show_upper;        // MSB/LSB en 7seg (single)
+  assign leds_status[15]   = slow_tick;         // tick visual
 
   // -------- Selección de modo de LEDs --------
   assign LED = progress_mode ? prog_leds_sel : leds_status;
