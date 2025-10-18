@@ -19,51 +19,6 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module is_overflow(Exp, AddExp, OverFlow);
-  input [4:0] Exp;
-  input [4:0] AddExp;
-  output OverFlow;
- 
-  wire [5:0] NewExp = Exp + AddExp;
-  
-  assign OverFlow = (NewExp >= 6'b011111);
-  
-  
-endmodule
-
-module is_underflow(Exp, SubExp, UnderFlow);
-  input [4:0] Exp;
-  input [4:0] SubExp;
-  output UnderFlow;
-  
-  assign UnderFlow = ( SubExp > Exp );
-  
-endmodule
-
-module is_inexact(Man, CarryOut, inexact);
-  input CarryOut;
-  input [9:0] Man;
-  output inexact;
-  
-  assign inexact = (Man[0] && CarryOut);
-  
-endmodule
-
-module is_invalid_op(Exp1, Exp2, Man1, Man2, InvalidOp);
-  input [4:0] Exp1, Exp2;
-  input [9:0] Man1, Man2;
-  output InvalidOp;
-  
-  wire is_inf_Val1 = (&Exp1 && ~|Man1);
-  wire is_inf_Val2 = (&Exp2 && ~|Man2);
-  
-  wire is_invalid_Val1 = (&Exp1 && |Man1);
-  wire is_invalid_Val2 = (&Exp2 && |Man2);
-  
-  assign InvalidOp = (is_inf_Val1 | is_inf_Val2 | is_invalid_Val1 | is_invalid_Val2);
-
-endmodule
-
 module FullSub_mul(Si, Ri, Din, Debe, Dout);
   input Si, Ri, Din;
   output wire Debe, Dout;
@@ -85,9 +40,6 @@ module RestaExp(S, R, F);
     for(i = 0; i < 5; i = i + 1)
       FullSub_mul sub_i(S[i], R[i], Debe[i], Debe[i+1], F[i]);
   endgenerate
-  
-  // Maybe si Debe[5] da 1, hay overflow
-
 endmodule
 
 module restar_1_bit_expo(exp, F);
@@ -143,10 +95,6 @@ function [4:0] first_one;
   
 endfunction
   
-  initial begin
-    $monitor("m1: %b, m2: %b, result: %b", Sm, Rm, Result);
-  end
-  
   // Debe <- para los casos de 1x.xxx 
   // ShiftCondition <- para decir: si 0.xxx, detecto cuantos pasos debo dar para llegar
   // al primer 1.
@@ -200,9 +148,8 @@ assign ExpOut = exp_rnd;
   assign overflow = (Debe) ? h_overflow : 1'b0;
 endmodule
 
-
-// #(parameter N=8), LUEGO adaptar con parameter a 32 bits.
 module ProductHP (S, R, F, overflow, underflow, inv_op, inexact);  
+// #(parameter N=8), LUEGO adaptar con parameter a 32 bits.
   input [15:0] S, R;
   output wire [15:0] F;
   output overflow, underflow, inv_op, inexact;
@@ -216,7 +163,11 @@ module ProductHP (S, R, F, overflow, underflow, inv_op, inexact);
   wire s1 = S[15];
   wire s2 = R[15];
   wire sign = s1^s2;
-       
+  
+  wire is_zero_s = (e1 == 5'd0) && (m1 == 10'd0);
+  wire is_zero_r = (e2 == 5'd0) && (m2 == 10'd0);
+  wire result_is_zero = is_zero_s | is_zero_r;
+
   wire [4:0] exp_to_use      = e1 + e2 - 5'd15;
   wire [5:0] evaluate_flags  = e1 + e2;
   wire [5:0] despues_la_borro= e1 + e2 - 5'd15;
@@ -226,20 +177,18 @@ module ProductHP (S, R, F, overflow, underflow, inv_op, inexact);
 
   wire [9:0] m_final;
   wire [4:0] exp_final;
-  wire over_t2; // overflow interno por "carry" de normalización
+  wire over_t2, inexact_core;
   Prod product_mantisa(param_m1, param_m2, exp_to_use, m_final, exp_final,
-                       over_t2, inexact);
-
-  assign F[15]    = sign;
-  assign F[14:10] = exp_final;
-  assign F[9:0]   = m_final;
-
-  // Flags (igual que tenías antes)
+                       over_t2, inexact_core);
+  assign F[15]    = result_is_zero ? 1'b0 : sign;
+  assign F[14:10] = result_is_zero ? 5'd0 : exp_final;
+  assign F[9:0]   = result_is_zero ? 10'd0 : m_final;
   is_invalid_op flag4(.Exp1(e1), .Exp2(e2), .Man1(m1), .Man2(m2), .InvalidOp(inv_op));
 
   wire over_t1   = (evaluate_flags >= 6'd15) && (despues_la_borro >= 6'b011111);
   wire under_t1  = (evaluate_flags <  6'd15);
 
-  assign overflow   = over_t1 | over_t2 | inv_op;
-  assign underflow  = under_t1;
+  assign overflow   = result_is_zero ? 1'b0 : (over_t1 | over_t2 | inv_op);
+  assign underflow  = result_is_zero ? 1'b0 : under_t1;
+  assign inexact    = result_is_zero ? 1'b0 : inexact_core;
 endmodule

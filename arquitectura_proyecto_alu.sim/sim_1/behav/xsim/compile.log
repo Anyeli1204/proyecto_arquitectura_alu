@@ -1,8 +1,35 @@
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_fp16_alu_basic
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_flags.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_alu_mul_flags_bin
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven
-INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_redondeo_extras.v" into library xil_defaultlib
-INFO: [VRFC 10-311] analyzing module tb_RoundNearestEven_more
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/Division.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module Division
+INFO: [VRFC 10-311] analyzing module DivHP
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/Multiplicacion.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module FullSub_mul
+INFO: [VRFC 10-311] analyzing module RestaExp
+WARNING: [VRFC 10-8332] begin/end is required for generate-for in this mode of Verilog [C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/Multiplicacion.v:41]
+INFO: [VRFC 10-311] analyzing module restar_1_bit_expo
+INFO: [VRFC 10-311] analyzing module right_shift_pf
+INFO: [VRFC 10-311] analyzing module Prod
+INFO: [VRFC 10-311] analyzing module ProductHP
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/RoundNearestEven.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module RoundNearestEven
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/SumaResta.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module FullAdder
+INFO: [VRFC 10-311] analyzing module FullSub_add
+INFO: [VRFC 10-311] analyzing module RestaExp_sum
+WARNING: [VRFC 10-8332] begin/end is required for generate-for in this mode of Verilog [C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/SumaResta.v:47]
+INFO: [VRFC 10-311] analyzing module SumarExp
+WARNING: [VRFC 10-8332] begin/end is required for generate-for in this mode of Verilog [C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/SumaResta.v:59]
+INFO: [VRFC 10-311] analyzing module mas_1_bit_expo
+INFO: [VRFC 10-311] analyzing module restar_1_bit_expo_sum
+INFO: [VRFC 10-311] analyzing module right_shift_pf_sum
+INFO: [VRFC 10-311] analyzing module SumMantisa
+INFO: [VRFC 10-311] analyzing module RestaMantisa
+INFO: [VRFC 10-311] analyzing module Suma16Bits
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/alu.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module alu
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sources_1/new/flags_operations.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module is_overflow
+INFO: [VRFC 10-311] analyzing module is_underflow
+INFO: [VRFC 10-311] analyzing module is_inexact
+INFO: [VRFC 10-311] analyzing module is_invalid_op
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/Usuario/Desktop/proyecto_arquitectura_alu/arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu_funcional_flags.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_alu_hp_bin

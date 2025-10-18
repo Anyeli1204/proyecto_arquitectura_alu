@@ -1,0 +1,92 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Verilog: Compilar testbench",
+            "type": "shell",
+            "command": "make",
+            "args": ["compile-${input:testbench}"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Verilog: Ejecutar testbench",
+            "type": "shell",
+            "command": "make",
+            "args": ["run-${input:testbench}"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Verilog: Ejecutar todos los testbenches",
+            "type": "shell",
+            "command": "make",
+            "args": ["test-all"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Verilog: Limpiar archivos",
+            "type": "shell",
+            "command": "make",
+            "args": ["clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Verilog: Verificar Icarus Verilog",
+            "type": "shell",
+            "command": "make",
+            "args": ["check-iverilog"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testbench",
+            "description": "Seleccionar testbench",
+            "type": "pickString",
+            "options": [
+                "alu",
+                "alu_bin",
+                "flags",
+                "redondeo",
+                "redondeo_extras",
+                "Suma16Bits_flags_bin",
+                "SumaResta",
+                "SumaRestaFlags"
+            ]
+        }
+    ]
+}

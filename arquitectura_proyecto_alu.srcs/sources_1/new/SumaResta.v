@@ -18,15 +18,13 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
-// Con fe la placa no explote con tanto wire
-
 module FullAdder(Si, Ri, Din, Debe, Dout);
   input Si, Ri, Din;
   output wire Debe, Dout;
+   
   assign Debe = (Si & Ri) | (Ri & Din) | (Si & Din);
   assign Dout = Si ^ Ri ^ Din;
+  
 endmodule
 
 module FullSub_add(Si, Ri, Din, Debe, Dout);
@@ -41,33 +39,25 @@ endmodule
 module RestaExp_sum(S, R, F);
   input [4:0] S, R;
   output wire[4: 0] F;
-  
   wire [5:0] Debe;
   assign Debe[0] = 1'b0;
-  
   genvar i;
   generate
     for(i = 0; i < 5; i = i + 1)
       FullSub_add sub_i(S[i], R[i], Debe[i], Debe[i+1], F[i]);
   endgenerate
  endmodule
-  
-  // Maybe si Debe[5] da 1, hay overflow
-
 
 module SumarExp(S, R, F);
   input [4:0] S, R;
   output wire[4: 0] F;
-  
   wire [5:0] Debe;
   assign Debe[0] = 1'b0;
-  
   genvar i;
   generate
     for(i = 0; i < 5; i = i + 1)
       FullAdder add_i(S[i], R[i], Debe[i], Debe[i+1], F[i]);
   endgenerate
-
 endmodule
 
 module mas_1_bit_expo(exp, F);
@@ -82,52 +72,61 @@ module restar_1_bit_expo_sum(exp, F);
   RestaExp_sum sub_exp(exp, 5'b00001, F);
 endmodule
 
-module right_shift_pf_sum(mantisa, is_same_exp, shifts, F);
+module right_shift_pf_sum(mantisa, is_same_exp, shifts, F, lost_bits);
   input is_same_exp;
   input [9:0] mantisa;
   input [4:0] shifts;
   output [9:0] F;
-  
-  wire [9:0] e1 = {1'b1, mantisa[9:1]};
- 
-  wire [4:0] aux_shifts;
-  restar_1_bit_expo_sum sub_shift(.exp(shifts), .F(aux_shifts));
-  
-  //(shifts > 0 || is_same_exp)
-  assign F = (shifts > 0) ? e1 >> aux_shifts : mantisa;
-  
+  output lost_bits; 
+  wire [20:0] full_value = {1'b1, mantisa, 10'b0};  // Bit implícito + mantisa + padding
+  wire [20:0] shifted = full_value >> shifts;
+  assign F = shifted[19:10];
+  assign lost_bits = (shifts > 0) ? |shifted[9:0] : 1'b0;
 endmodule
-
-module SumMantisa(S, R, is_same_exp, ExpIn, ExpOut, F);
+ 
+module SumMantisa(S, R, is_same_exp, ExpIn, ExpOut, F, lost_align);
   input is_same_exp;
   input [9:0] S, R;
   input [4:0] ExpIn;
-  
+  input lost_align;
   output wire[4:0] ExpOut;
   output wire[9:0] F;
-  
-  wire [10:0] Debe;
-  wire [9: 0] F_aux;
-  wire [4:0] ExpAux;
-  
-  assign Debe[0] = 1'b0;
+
+  wire [10:0] A = {1'b1, S};
+  wire [10:0] B = {1'b1, R};
+
+   wire [10:0] sum_bits;   // suma bit a bit
+  wire [11:0] C;          // cadena de carries (12 para cubrir carry final)
+  assign C[0] = 1'b0;
   
   genvar i;
   generate
-    for(i = 0; i < 10; i = i + 1)
-      FullAdder add_i(S[i], R[i], Debe[i], Debe[i+1], F_aux[i]);
+    for (i = 0; i < 11; i = i + 1) begin: ADD11
+      FullAdder add_i(A[i], B[i], C[i], C[i+1], sum_bits[i]);
+    end
   endgenerate
+  wire        carry = C[11];
+  wire [14:0] ms_for_round;
+  wire [4:0] exp_for_round;
   
-  // Aumentar el exponente en +1 si tienen la misma base (único caso)
-  mas_1_bit_expo add_exp(.exp(ExpIn), .F(ExpAux));
+  assign ms_for_round = carry ? 
+    {sum_bits[10:1], sum_bits[0], 3'b0, lost_align} :  // con carry: 10 bits + guard + sticky
+    {sum_bits[9:0], 4'b0, lost_align};                 // sin carry: 10 bits + sticky
   
-wire normalize = Debe[10] | (is_same_exp & |ExpIn);
-assign ExpOut  = normalize ? ExpAux : ExpIn;
-assign F = normalize ? (F_aux >> 1) : F_aux;
-
+  assign exp_for_round = carry ? (ExpIn + 5'd1) : ExpIn;
+  wire [9:0] frac_rounded;
+  wire [4:0] exp_rounded;
+  RoundNearestEven rne_sum(
+    .ms(ms_for_round),
+    .exp(exp_for_round),
+    .ms_round(frac_rounded),
+    .exp_round(exp_rounded)
+  );
+  assign F = frac_rounded;
+  assign ExpOut = exp_rounded;
 endmodule
 
-module RestaMantisa(S, R, is_same_exp, is_mayus_exp, ExpIn, ExpOut, F);
+module RestaMantisa(S, R, is_same_exp, is_mayus_exp, ExpIn, ExpOut, F, is_result_zero);
   
   input is_same_exp;
   input [9:0] S, R;
@@ -136,6 +135,7 @@ module RestaMantisa(S, R, is_same_exp, is_mayus_exp, ExpIn, ExpOut, F);
   
   output wire[4:0] ExpOut;
   output wire[9: 0] F;
+  output wire is_result_zero;
   
   // Función que se encarga de encontrar el primer 1 de la mantisa, util para la resta.
 function [4:0] first_one_9bits;
@@ -197,21 +197,22 @@ endfunction
   
   assign idx_to_use = cond_idx ? idx_e : idx;
   assign F_to_use = !is_mayus_exp ? F_aux_e : F_aux;
-  
+  assign is_result_zero = (F_to_use == 10'd0);
   RestaExp_sum sub_exp(ExpIn, idx_to_use, ExpAux);
-  assign ExpOut = (cond_F_shift) ? ExpAux : ExpIn;
-  assign F = (cond_F_shift) ? (F_to_use << idx_to_use) : F_to_use;
-  
-  
+  assign ExpOut = is_result_zero ? 5'd0 : ((cond_F_shift) ? ExpAux : ExpIn);
+  assign F = (cond_F_shift) ? (F_to_use << idx_to_use) : F_to_use;  
 endmodule
+
+
 
 // Mantisa [9:0]
 // Exponente [10:14]
 // Signo [15]
-module Suma16Bits(S, R, F);
-  
+module Suma16Bits(S, R, F, overflow, underflow, inexact);  
   input [15:0] S, R;
   output wire [15:0] F;
+  output overflow, underflow, inexact;
+
   
   wire[9:0] m1_init = S[9:0];
   wire[9:0] m2_init = R[9:0];
@@ -230,22 +231,19 @@ module Suma16Bits(S, R, F);
   wire [9:0] m1, m2;
   wire [4:0] exp_aux;
   wire sign;
-   
   wire [9:0] op_sum;
   
   wire boolean1 = (e1 > e2);
   wire is_same_exp = (e1 == e2);
   
   wire [9:0] m1_shift, m2_shift;
+  wire lost_m1, lost_m2;
   
-  // Shift para que estén en la misma base...
-  right_shift_pf_sum mshift1(m1_init, is_same_exp, diff_exp2, m1_shift);
-  right_shift_pf_sum mshift2(m2_init, is_same_exp, diff_exp1, m2_shift);
-  
-  assign m2 = (boolean1) ? m2_shift : m2_init;
-  assign m1 = (boolean1) ? m1_init : m1_shift;
-  
-  // La base inicial será del exponente mayor.
+  right_shift_pf_sum mshift1(m1_init, is_same_exp, diff_exp2, m1_shift, lost_m1);
+  right_shift_pf_sum mshift2(m2_init, is_same_exp, diff_exp1, m2_shift, lost_m2);
+
+  assign m2      = (boolean1) ? m2_shift : m2_init;
+  assign m1      = (boolean1) ? m1_init  : m1_shift;
   assign exp_aux = (boolean1) ? e1 : e2;
   
   // Apartir del signo, sabremos si se suma o se resta.
@@ -257,30 +255,29 @@ module Suma16Bits(S, R, F);
               : s1;
   
   // Parámetros de ayuda (ya que verilog no soporta if/else en el nivel del modulo)
-  wire [9:0] op_sum_sub;
-  wire [9:0] op_sum_add;
-  
-  wire [4:0] exp_sum_sub;
-  wire [4:0] exp_sum_add;
-  
-  SumMantisa sm(m1, m2, is_same_exp, exp_aux, exp_sum_add, op_sum_add);
-  RestaMantisa rm(m1, m2, is_same_exp, boolean1, exp_aux, exp_sum_sub, op_sum_sub);
-  
-  
+  wire [9:0] op_sum_sub, op_sum_add;
+  wire [4:0] exp_sum_sub, exp_sum_add;
+  wire is_zero_result; 
+  wire lost_align = lost_m1 | lost_m2;
+
+  SumMantisa sm(m1, m2, is_same_exp, exp_aux, exp_sum_add, op_sum_add, lost_align);
+  RestaMantisa rm(m1, m2, is_same_exp, boolean1, exp_aux, exp_sum_sub, op_sum_sub, is_zero_result);
+
   assign op_sum = (boolean2) ? op_sum_sub : op_sum_add;
   wire [4:0] final_exp = (boolean2) ? exp_sum_sub : exp_sum_add;
-
- 
-  initial begin
-    $monitor("m1: %b, m2: %b", m1, m2);
-    $monitor("sign: %b, exp: %b, mantisa: %b, is_resta: %b", sign, final_exp, op_sum, boolean2);
-  end
- 
-  
-  assign F[15] = sign;
+  assign F[15]    = (boolean2 && is_zero_result) ? 1'b0 : sign;
   assign F[14:10] = final_exp;
-  assign F[9:0] = op_sum;
+  assign F[9:0]   = op_sum;
+  // ============== FLAGS CORREGIDOS ==============
+  // Inexact: si hubo bits perdidos en alineación O en redondeo
+  // El redondeo ya se maneja dentro de RoundNearestEven que puede cambiar exp
+  wire inexact_sub = lost_align;
   
+  // ? Simplificado: lost_align captura si hubo pérdida
+  assign inexact = lost_align;
+
+  assign overflow  = (final_exp == 5'h1F);
+  assign underflow = (final_exp == 5'd0) & inexact;
 endmodule
 
 // La resta se divide en 3 casos:
