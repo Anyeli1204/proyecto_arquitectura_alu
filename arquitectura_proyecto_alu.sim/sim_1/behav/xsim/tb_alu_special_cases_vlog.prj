@@ -6,7 +6,8 @@ verilog xil_defaultlib  \
 "../../../../arquitectura_proyecto_alu.srcs/sources_1/new/SumaResta.v" \
 "../../../../arquitectura_proyecto_alu.srcs/sources_1/new/alu.v" \
 "../../../../arquitectura_proyecto_alu.srcs/sources_1/new/flags_operations.v" \
-"../../../../arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu_funcional_flags.v" \
+"../../../../arquitectura_proyecto_alu.srcs/sources_1/new/fp16_special_cases.v" \
+"../../../../arquitectura_proyecto_alu.srcs/sim_1/new/tb_alu_special_cases.v" \
 
 # compile glbl module
 verilog xil_defaultlib "glbl.v"

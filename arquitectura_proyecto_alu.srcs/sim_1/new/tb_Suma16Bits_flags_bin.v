@@ -1,168 +1,158 @@
 `timescale 1ns/1ps
 
-module tb_SumaResta_flags_all;
+module tb_alu_special_cases;
 
-  // Entradas bajo prueba
-  reg  [15:0] A, B;
+  reg  [15:0] a, b;
+  reg  [1:0]  op;
+  wire [15:0] y;
+  wire [4:0]  ALUFlags;  // {invalid, div_zero, overflow, underflow, inexact}
 
-  // ========= Instancia para SUMA =========
-  wire [15:0] F_add;
-  wire ov_add, un_add, iv_add, ix_add;
+  alu dut(.a(a), .b(b), .op(op), .y(y), .ALUFlags(ALUFlags));
 
-  Suma16Bits DUT_ADD (
-    .S(A), .R(B), .F(F_add),
-    .overflow(ov_add), .underflow(un_add),
-    .inv_op(iv_add), .inexact(ix_add)
+  // Valores especiales IEEE 754
+  localparam [15:0]
+    POS_ZERO = 16'h0000,
+    NEG_ZERO = 16'h8000,
+    POS_INF  = 16'h7C00,
+    NEG_INF  = 16'hFC00,
+    QNAN     = 16'h7E00,
+    ONE      = 16'h3C00,
+    TWO      = 16'h4000,
+    DENORM   = 16'h0001;  // Número denormal mínimo
+
+  localparam [1:0] OP_ADD = 2'b00, OP_SUB = 2'b01, OP_MUL = 2'b10, OP_DIV = 2'b11;
+
+  integer passed, failed, total;
+  
+  task check(
+    input [127:0] name,
+    input [15:0] exp_y,
+    input exp_invalid,
+    input exp_div_zero,
+    input exp_overflow
   );
-
-  // ========= Instancia para RESTA (A + (-B)) =========
-  wire [15:0] F_sub;
-  wire ov_sub, un_sub, iv_sub, ix_sub;
-
-  Suma16Bits DUT_SUB (
-    .S(A), .R({~B[15], B[14:0]}), .F(F_sub), // cambia signo de B
-    .overflow(ov_sub), .underflow(un_sub),
-    .inv_op(iv_sub), .inexact(ix_sub)
-  );
-
-  // -------- Half-precision útiles (binario) --------
-  localparam [15:0] HP_Z     = 16'b0_00000_0000000000; // +0
-  localparam [15:0] HP_ONE   = 16'b0_01111_0000000000; //  1.0
-  localparam [15:0] HP_ONEP5 = 16'b0_01111_1000000000; //  1.5
-  localparam [15:0] HP_TWO   = 16'b0_10000_0000000000; //  2.0
-  localparam [15:0] HP_MAXF  = 16'b0_11110_1111111111; //  max finito
-  localparam [15:0] HP_INF   = 16'b0_11111_0000000000; //  +Inf
-  localparam [15:0] HP_HALF_LSB1 = 16'b0_01110_0000000001; // 0.500488...
-  localparam [15:0] HP_MIN_N     = 16'b0_00001_0000000000; // mínimo normal
-  localparam [15:0] HP_MIN_N_P1  = 16'b0_00001_0000000001; // min normal + 1 LSB
-
-  integer fails;
-
-  // ====== Helpers (compatibles con Verilog-2001) ======
-  task show_add;
-    input [8*64-1:0] name;
     begin
-      $display("%s", name);
-      $display("  [ADD] A=%b  B=%b  ->  F=%b  | ovf=%b unf=%b inv=%b inex=%b",
-               A, B, F_add, ov_add, un_add, iv_add, ix_add);
-    end
-  endtask
-
-  task show_sub;
-    input [8*64-1:0] name;
-    begin
-      $display("%s", name);
-      $display("  [SUB] A=%b  B=%b  ->  F=%b  | ovf=%b unf=%b inv=%b inex=%b",
-               A, B, F_sub, ov_sub, un_sub, iv_sub, ix_sub);
-    end
-  endtask
-
-  task check_y_add;
-    input [15:0] exp;
-    begin
-      if (F_add !== exp) begin
-        $display("  [FAIL ADD] F got=%b exp=%b", F_add, exp);
-        fails = fails + 1;
-      end
-    end
-  endtask
-
-  task check_y_sub;
-    input [15:0] exp;
-    begin
-      if (F_sub !== exp) begin
-        $display("  [FAIL SUB] F got=%b exp=%b", F_sub, exp);
-        fails = fails + 1;
-      end
-    end
-  endtask
-
-  // Compara flags con máscara (1=se verifica, 0="no me importa")
-  task check_flags_add_mask;
-    input [3:0] exp;   // {ovf,unf,inv,inex}
-    input [3:0] mask;  // bit=1 obliga igualdad
-    reg   [3:0] got;
-    begin
-      got = {ov_add, un_add, iv_add, ix_add};
-      if ( (got & mask) !== (exp & mask) ) begin
-        $display("  [FAIL ADD] flags got=%b exp=%b mask=%b", got, exp, mask);
-        fails = fails + 1;
-      end
-    end
-  endtask
-
-  task check_flags_sub_mask;
-    input [3:0] exp;   // {ovf,unf,inv,inex}
-    input [3:0] mask;
-    reg   [3:0] got;
-    begin
-      got = {ov_sub, un_sub, iv_sub, ix_sub};
-      if ( (got & mask) !== (exp & mask) ) begin
-        $display("  [FAIL SUB] flags got=%b exp=%b mask=%b", got, exp, mask);
-        fails = fails + 1;
+      total = total + 1;
+      #1;
+      if (y !== exp_y || 
+          ALUFlags[4] !== exp_invalid ||
+          ALUFlags[3] !== exp_div_zero ||
+          ALUFlags[2] !== exp_overflow) begin
+        failed = failed + 1;
+        $display("[FAIL] %s: y=%h (exp=%h) flags=%b (exp: I=%b DZ=%b OV=%b)", 
+                 name, y, exp_y, ALUFlags, exp_invalid, exp_div_zero, exp_overflow);
+      end else begin
+        passed = passed + 1;
+        $display("[PASS] %s", name);
       end
     end
   endtask
 
   initial begin
-    fails = 0;
-    $display("===============================================================");
-    $display("  TEST: Suma16Bits (ADD y SUB) -> verifica todas las banderas");
-    $display("===============================================================\n");
-
-    // ---------------- SUMA ----------------
-    // (A) 1.0 + 1.0 = 2.0   (sin flags)
-    A=HP_ONE; B=HP_ONE; #2;
-    show_add("ADD A: 1.0 + 1.0");
-    check_y_add(HP_TWO);
-    check_flags_add_mask(4'b0000, 4'b1111);
-
-    // (B) 1.5 + 1.5 = 3.0   (carry/normalize, sin overflow)
-    A=HP_ONEP5; B=HP_ONEP5; #2;
-    show_add("ADD B: 1.5 + 1.5");
-    check_y_add(16'b0_10000_1000000000); // 3.0
-    check_flags_add_mask(4'b0000, 4'b1111);
-
-    // (C) 1.0 + 0.500488... -> inexact=1 por alineamiento
-    A=HP_ONE; B=HP_HALF_LSB1; #2;
-    show_add("ADD C: 1.0 + 0.500488... (inexact=1)");
-    check_flags_add_mask(4'b0001, 4'b0001); // solo miro inex
-
-    // (D) Overflow: max_finite + max_finite
-    A=HP_MAXF; B=HP_MAXF; #2;
-    show_add("ADD D: max_finite + max_finite (overflow)");
-    check_flags_add_mask(4'b1000, 4'b1000); // ovf=1 (los demás no obligatorios aquí)
-
-    // (E) Inválida según tu helper: +Inf + +Inf  (tu RTL pone inv=1 y ovf=1 en suma)
-    A=HP_INF; B=HP_INF; #2;
-    show_add("ADD E: +Inf + +Inf (inv=1, ovf=1 por tu mapeo)");
-    check_flags_add_mask(4'b1010, 4'b1010);  // AHORA: ovf=1, inv=1
-
-    // ---------------- RESTA ----------------
-    // (F) 1.0 + (-1.0) = +0.0 (sin flags)  <-- requiere que tu RTL produzca cero canónico
-    A=HP_ONE; B=HP_ONE; #2;
-    show_sub("SUB F: 1.0 - 1.0 = 0.0");
-    check_y_sub(HP_Z);
-    check_flags_sub_mask(4'b0000, 4'b1111);
-
-    // (G) inexact en resta: 1.0 - 0.500488...  (alinea y pierde bits)
-    A=HP_ONE; B=HP_HALF_LSB1; #2;
-    show_sub("SUB G: 1.0 - 0.500488... (inexact=1)");
-    check_flags_sub_mask(4'b0001, 4'b0001); // solo inex=1
-
-    // (H) underflow en resta por cancelación con exponente mínimo:
-    //     (1.0*2^-14 + 1LSB) - (1.0*2^-14) -> requiere shift > exp -> underflow=1
-    A=HP_MIN_N_P1; B=HP_MIN_N; #2;
-    show_sub("SUB H: (min_norm+LSB) - (min_norm)  => underflow=1");
-    check_flags_sub_mask(4'b0100, 4'b0110); // espero unf=1; ovf=0 (inv no aplica)
-
-    // (I) Inválida (según tu helper) en resta: +Inf - +Inf  => inv=1, ovf=0 en resta
-    A=HP_INF; B=HP_INF; #2;
-    show_sub("SUB I: +Inf - +Inf (inv=1, ovf=0 en resta)");
-    check_flags_sub_mask(4'b0100, 4'b0100); // solo inv=1 en SUB (tu RTL pone ovf=0 en resta)
-
-    $display("\n---- SUMMARY: %0d FAIL(s) ----", fails);
-    if (fails != 0) $stop; else $finish;
+    passed = 0; failed = 0; total = 0;
+    $display("=== TEST: Casos Especiales IEEE 754 ===\n");
+    
+    // ========== NaN PROPAGATION ==========
+    $display("--- NaN Propagation ---");
+    op = OP_ADD; a = QNAN; b = ONE; 
+    check("NaN + 1", QNAN, 1, 0, 0);
+    
+    op = OP_MUL; a = QNAN; b = TWO;
+    check("NaN * 2", QNAN, 1, 0, 0);
+    
+    op = OP_DIV; a = ONE; b = QNAN;
+    check("1 / NaN", QNAN, 1, 0, 0);
+    
+    // ========== INFINITY OPERATIONS ==========
+    $display("\n--- Infinity Operations ---");
+    
+    // Inf + Inf (mismo signo) = Inf (sin overflow, es resultado correcto)
+    op = OP_ADD; a = POS_INF; b = POS_INF;
+    check("Inf + Inf", POS_INF, 0, 0, 0);  // ? Sin overflow
+    
+    // Inf - Inf = NaN (INVALID)
+    op = OP_SUB; a = POS_INF; b = POS_INF;
+    check("Inf - Inf", QNAN, 1, 0, 0);
+    
+    // Inf + x = Inf (sin overflow)
+    op = OP_ADD; a = POS_INF; b = ONE;
+    check("Inf + 1", POS_INF, 0, 0, 0);  // ? Sin overflow
+    
+    // Inf * 0 = NaN (INVALID)
+    op = OP_MUL; a = POS_INF; b = POS_ZERO;
+    check("Inf * 0", QNAN, 1, 0, 0);
+    
+    // Inf * 2 = Inf (sin overflow)
+    op = OP_MUL; a = POS_INF; b = TWO;
+    check("Inf * 2", POS_INF, 0, 0, 0);  // ? Sin overflow
+    
+    // Inf / Inf = NaN (INVALID)
+    op = OP_DIV; a = POS_INF; b = POS_INF;
+    check("Inf / Inf", QNAN, 1, 0, 0);
+    
+    // Inf / 2 = Inf (sin overflow)
+    op = OP_DIV; a = POS_INF; b = TWO;
+    check("Inf / 2", POS_INF, 0, 0, 0);  // ? Sin overflow
+    
+    // 1 / Inf = 0
+    op = OP_DIV; a = ONE; b = POS_INF;
+    check("1 / Inf", POS_ZERO, 0, 0, 0);
+    
+    // ========== ZERO OPERATIONS ==========
+    $display("\n--- Zero Operations ---");
+    
+    // 0 + 0 = +0
+    op = OP_ADD; a = POS_ZERO; b = POS_ZERO;
+    check("0 + 0", POS_ZERO, 0, 0, 0);
+    
+    // -0 + -0 = -0
+    op = OP_ADD; a = NEG_ZERO; b = NEG_ZERO;
+    check("-0 + -0", NEG_ZERO, 0, 0, 0);
+    
+    // 0 * 5 = 0
+    op = OP_MUL; a = POS_ZERO; b = 16'h4500;  // 5.0
+    check("0 * 5", POS_ZERO, 0, 0, 0);
+    
+    // 0 / 0 = NaN (INVALID)
+    op = OP_DIV; a = POS_ZERO; b = POS_ZERO;
+    check("0 / 0", QNAN, 1, 0, 0);
+    
+    // 1 / 0 = Inf (DIVIDE BY ZERO)
+    op = OP_DIV; a = ONE; b = POS_ZERO;
+    check("1 / 0", POS_INF, 0, 1, 0);
+    
+    // 0 / 1 = 0
+    op = OP_DIV; a = POS_ZERO; b = ONE;
+    check("0 / 1", POS_ZERO, 0, 0, 0);
+    
+    // ========== SIGNED ZEROS ==========
+    $display("\n--- Signed Zeros ---");
+    
+    // -1 * 0 = -0
+    op = OP_MUL; a = 16'hBC00; b = POS_ZERO;  // -1.0 * 0
+    check("-1 * 0", NEG_ZERO, 0, 0, 0);
+    
+    // 1 / -0 = -Inf
+    op = OP_DIV; a = ONE; b = NEG_ZERO;
+    check("1 / -0", NEG_INF, 0, 1, 0);
+    
+    // ========== DENORMALS ==========
+    $display("\n--- Denormals ---");
+    
+    // Denormal + 0 = Denormal
+    op = OP_ADD; a = DENORM; b = POS_ZERO;
+    check("denorm + 0", DENORM, 0, 0, 0);
+    
+    // ========== RESUMEN ==========
+    $display("\n==========================================");
+    $display("Total: %0d  Passed: %0d  Failed: %0d", total, passed, failed);
+    if (failed == 0)
+      $display(">>> ALL SPECIAL CASES PASSED! ?");
+    else
+      $display(">>> %0d SPECIAL CASES FAILED ?", failed);
+    $display("==========================================");
+    
+    $finish;
   end
 
 endmodule
