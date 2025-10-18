@@ -1,9 +1,5 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company:
-// Engineer:
-//
-// Create Date: 16.10.2025 15:27:41
 // Module Name: alu
 // Description: ALU IEEE-754 half/single (16/32) con flags {invalid, div0, ovf, unf, inx}
 // Dependencies: fp16_special_case_handler, Suma16Bits, ProductHP, DivHP
@@ -29,7 +25,7 @@ module alu #(parameter system = 16) (
   localparam integer FRAC_BITS = (system == 16) ? 10 : 23;
   localparam integer SIGN_POS  = system - 1;
 
-  // Compatibilidad con tus submódulos
+  // Compatibilidad con submódulos
   localparam integer MBS = FRAC_BITS - 1;
   localparam integer EBS = EXP_BITS  - 1;
   localparam integer BS  = system - 1;
@@ -79,15 +75,20 @@ module alu #(parameter system = 16) (
     .inv_op(iv_div), .inexact(ix_div)
   );
 
-  // ---------- Wires de clasificación para la rama especial ----------
+  // ---------- Clasificación para rama especial ----------
   wire [EXP_BITS-1:0]  sp_exp  = special_result[SIGN_POS-1 -: EXP_BITS];
   wire [FRAC_BITS-1:0] sp_frac = special_result[FRAC_BITS-1:0];
   wire special_is_inf    = (sp_exp == {EXP_BITS{1'b1}}) && (sp_frac == {FRAC_BITS{1'b0}});
   wire special_is_denorm = (sp_exp == {EXP_BITS{1'b0}}) && (sp_frac != {FRAC_BITS{1'b0}});
 
-  // ---------- Regs auxiliares (declarados a nivel módulo, NO dentro del always) ----------
-  reg [BS:0]           y_sel;
-  reg                  ix_sel, iv_sel;
+  // ---------- Regs auxiliares (a nivel de módulo) ----------
+  reg [BS:0]           y_sel;    // salida cruda de la unidad elegida
+  reg                  ix_sel;   // inexact de la unidad
+  reg                  iv_sel;   // invalid de la unidad (MUL/DIV)
+
+  reg [BS:0]           y_pre;    // salida tras saturación a ±Inf si hubo ov_raw
+  reg                  ov_raw, un_raw; // flags crudas de la unidad
+  reg                  sign_res; // signo para saturación
 
   reg [EXP_BITS-1:0]   r_exp, a_exp, b_exp;
   reg [FRAC_BITS-1:0]  r_frac, a_frac, b_frac;
@@ -103,8 +104,12 @@ module alu #(parameter system = 16) (
     ALUFlags = 5'b0;
 
     y_sel  = {BS+1{1'b0}};
+    y_pre  = {BS+1{1'b0}};
     ix_sel = 1'b0;
     iv_sel = 1'b0;
+    ov_raw = 1'b0;
+    un_raw = 1'b0;
+    sign_res = 1'b0;
 
     r_exp = {EXP_BITS{1'b0}};
     r_frac = {FRAC_BITS{1'b0}};
@@ -141,30 +146,42 @@ module alu #(parameter system = 16) (
 
     // ---------- Operación normal ----------
     else begin
-      // 1) Selección de resultado de la unidad
+      // 1) Selección de resultado y señales de la unidad
       case (op)
-        2'b00: begin y_sel = add_y; ix_sel = ix_add; iv_sel = 1'b0;   end // ADD
-        2'b01: begin y_sel = sub_y; ix_sel = ix_sub; iv_sel = 1'b0;   end // SUB
-        2'b10: begin y_sel = mul_y; ix_sel = ix_mul; iv_sel = iv_mul; end // MUL
-        2'b11: begin y_sel = div_y; ix_sel = ix_div; iv_sel = iv_div; end // DIV
-        default: begin y_sel = {BS+1{1'b0}}; ix_sel = 1'b0; iv_sel = 1'b0; end
+        2'b00: begin y_sel = add_y; ix_sel = ix_add; iv_sel = 1'b0;     ov_raw = ov_add; un_raw = un_add; end // ADD
+        2'b01: begin y_sel = sub_y; ix_sel = ix_sub; iv_sel = 1'b0;     ov_raw = ov_sub; un_raw = un_sub; end // SUB
+        2'b10: begin y_sel = mul_y; ix_sel = ix_mul; iv_sel = iv_mul;   ov_raw = ov_mul; un_raw = un_mul; end // MUL
+        2'b11: begin y_sel = div_y; ix_sel = ix_div; iv_sel = iv_div;   ov_raw = ov_div; un_raw = un_div; end // DIV
+        default: begin y_sel = {BS+1{1'b0}}; ix_sel = 1'b0; iv_sel = 1'b0; ov_raw = 1'b0; un_raw = 1'b0; end
       endcase
 
-      // 2) Clasificación del RESULTADO FINAL (ya normalizado/redondeado)
-      r_exp   = y_sel[SIGN_POS-1 -: EXP_BITS];
-      r_frac  = y_sel[FRAC_BITS-1:0];
+      // 2) Saturación a ±Inf si la UNIDAD reportó overflow (evita NaN=7FFF en hardware)
+      sign_res = (op==2'b10 || op==2'b11) ? (a[SIGN_POS] ^ b[SIGN_POS])  // MUL/DIV
+                                          :  y_sel[SIGN_POS];             // ADD/SUB
+      y_pre = y_sel;
+      if (ov_raw) begin
+        y_pre = { sign_res, {EXP_BITS{1'b1}}, {FRAC_BITS{1'b0}} }; // ±Inf
+      end
+
+      // 3) Clasificación del RESULTADO FINAL (ya normalizado/redondeado/saturado)
+      r_exp   = y_pre[SIGN_POS-1 -: EXP_BITS];
+      r_frac  = y_pre[FRAC_BITS-1:0];
       r_is_inf  = (r_exp == {EXP_BITS{1'b1}}) && (r_frac == {FRAC_BITS{1'b0}});
       r_is_zero = (r_exp == {EXP_BITS{1'b0}}) && (r_frac == {FRAC_BITS{1'b0}});
       r_is_sub  = (r_exp == {EXP_BITS{1'b0}}) && (r_frac != {FRAC_BITS{1'b0}});
 
-      // 3) Flags derivadas del resultado final
-      ovf = r_is_inf;
-      unf = r_is_sub || (r_is_zero && !a_is_zero && !b_is_zero);
+      // 4) Flags derivadas del resultado final
+      ovf = r_is_inf || ov_raw;
+
+      // Underflow: subnormal, o 0 por "tininess" SOLO en MUL/DIV (no por cancelación en ADD/SUB)
+      // op[1]==1 ? 10(MUL) o 11(DIV)
+      unf = r_is_sub || ((op[1] == 1'b1) && r_is_zero && !a_is_zero && !b_is_zero);
+
+      // Inexact: lo que diga la unidad, o si hubo ovf/unf
       inx = ix_sel | ovf | unf;
 
-      // 4) Publica salida y flags (invalid/div0 tratados en rama especial;
-      //    si la unidad indicó inv_op, lo reflejamos aquí también)
-      y        = y_sel;
+      // 5) Publicar salida y flags (invalid/div0 ya cubiertos en rama especial)
+      y        = y_pre;
       ALUFlags = {iv_sel, 1'b0 /*div0*/, ovf, unf, inx};
     end
   end
