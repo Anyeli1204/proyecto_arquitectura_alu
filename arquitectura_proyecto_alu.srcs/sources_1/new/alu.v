@@ -48,7 +48,7 @@ module alu #(parameter system = 16) (a, b, op, y, ALUFlags);
    // [4]=invalid, [3]=div_zero, [2]=overflow, [1]=underflow, [0]=inexact
   output reg [4:0] ALUFlags;
   output reg [BS: 0] y;
-
+  
   fp16_special_case_handler #(.MBS(MBS), .EBS(EBS), .BS(BS)) special_handler(
     .a(a),
     .b(b),
