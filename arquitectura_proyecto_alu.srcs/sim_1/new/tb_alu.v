@@ -26,7 +26,7 @@ module tb_fp16_alu_basic;
 
   alu DUT(.a(a), .b(b), .op(op), .y(y));
 
-  // half útiles: 1.0=0x3C00, 2.0=0x4000, 3.0=0x4200, 5.0=0x4500, 0.5=0x3800
+  // half ï¿½tiles: 1.0=0x3C00, 2.0=0x4000, 3.0=0x4200, 5.0=0x4500, 0.5=0x3800
   task show(input [127:0] msg);
     begin #1 $display("%s  op=%b a=%h b=%h => y=%h", msg, op, a, b, y); end
   endtask
@@ -41,7 +41,7 @@ module tb_fp16_alu_basic;
     // MUL: 3.0 * 0.5 = 1.5 (?0x3E00)
     op=2'b10; a=16'h4200; b=16'h3800; #5; show("MUL");
 
-    // DIV: 5.0 / 2.0 = 2.5 (?0x4200 -> 2.5 ? 0x4200? OJO según tu divisor)
+    // DIV: 5.0 / 2.0 = 2.5 (?0x4200 -> 2.5 ? 0x4200? OJO segï¿½n tu divisor)
     op=2'b11; a=16'h4500; b=16'h4000; #5; show("DIV");
 
     $finish;

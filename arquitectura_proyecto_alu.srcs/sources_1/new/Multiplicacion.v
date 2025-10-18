@@ -1,192 +1,141 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 16.10.2025 15:22:57
-// Design Name: 
-// Module Name: Multiplicacion
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
+module Prod #(parameter MBS=9, parameter EBS=4, parameter BS=15) (Sm, Rm, ExpIn, Fm, ExpOut, 
+  overflow, inexact);
+  
+  input [MBS+1:0] Sm, Rm;
+  input [EBS:0] ExpIn;
+  output wire [MBS:0] Fm;
+  output wire [EBS:0] ExpOut;
+  output        overflow, inexact;
 
-module FullSub_mul(Si, Ri, Din, Debe, Dout);
-  input Si, Ri, Din;
-  output wire Debe, Dout;
+  parameter FSIZE = MBS + 5;
+  parameter MSIZE = MBS + MBS + 3;
+  parameter STEAMSIZE = MBS + MBS + 3 + 6;
   
-  assign Debe = (~Si & Ri) | (~Si & Din) | (Ri & Din);
-  assign Dout = Si ^ Ri ^ Din;
+  // ------------ Function Section -------------
+  function [EBS:0] first_one;
   
-endmodule
-
-module RestaExp(S, R, F);
-  input [4:0] S, R;
-  output wire[4: 0] F;
-  
-  wire [5:0] Debe;
-  assign Debe[0] = 1'b0;
-  
-  genvar i;
-  generate
-    for(i = 0; i < 5; i = i + 1)
-      FullSub_mul sub_i(S[i], R[i], Debe[i], Debe[i+1], F[i]);
-  endgenerate
-  
-  // Maybe si Debe[5] da 1, hay overflow
-
-endmodule
-
-module restar_1_bit_expo(exp, F);
-  input [4:0] exp;
-  output [4:0] F;
-  RestaExp sub_exp(exp, 5'b00001, F);
-endmodule
-
-module right_shift_pf(mantisa, is_same_exp, shifts, F);
-  input is_same_exp;
-  input [9:0] mantisa;
-  input [4:0] shifts;
-  output [9:0] F;
-  
-  wire [9:0] e1 = {1'b1, mantisa[9:1]};
- 
-  wire [4:0] aux_shifts;
-  restar_1_bit_expo sub_shift(.exp(shifts), .F(aux_shifts));
-  
-  //(shifts > 0 || is_same_exp)
-  assign F = (shifts > 0) ? e1 >> aux_shifts : mantisa;
-  
-endmodule
-
-module Prod(Sm, Rm, ExpIn, Fm, ExpOut);
-  
-  input [10:0] Sm, Rm;
-  input [4:0] ExpIn;
-  output wire [9:0] Fm;
-  output wire [4:0] ExpOut;
-  
-  wire [21:0] Result = Sm * Rm;
-  
-function [4:0] first_one;
-  
-  input [21:0] bits;
-  integer idx;
-  reg found;
-  
-  begin
-    found = 0;
-    first_one = 5'b00000; 
+    input [MBS+1 + MBS+1 :0] bits;
+    integer idx;
+    reg found;
     
-    for (idx = 20; idx >= 0 && !found; idx = idx - 1) begin
-      if (bits[idx]) begin
-        first_one = (21 - idx);
-        found = 1;
+    begin
+      found = 0;
+      first_one = 5'b00000; 
+      
+      // MBS + MBS + 1 + 1 - 2 <-- -2 por el xx.mantisa
+      for (idx = MBS + MBS; idx >= 9 && !found; idx = idx - 1) begin
+        if (bits[idx]) begin
+          first_one = (MBS + MBS + 2 - idx);
+          found = 1;
+        end
       end
+
     end
+  
+  endfunction
 
-  end
-  
-endfunction
-  
-  initial begin
-    $monitor("m1: %b, m2: %b, result: %b", Sm, Rm, Result);
-  end
-  
-  // Debe <- para los casos de 1x.xxx 
-  // ShiftCondition <- para decir: si 0.xxx, detecto cuantos pasos debo dar para llegar
-  // al primer 1.
-  wire Debe = Result[21];
-  wire ShiftCondition = !Debe && !Result[20];
-  
-  // Si no es ShiftCondition, entonces estamos en los casos 1x.xxx o 01.xxx
-  wire [4:0] shifts = (ShiftCondition) ? first_one(Result) : 5'b00000;  
-  
-  // Rescato los 10 bits más significativos
-  //wire [9:0] Fm_out = (Debe) ? Result[20:11] : Result[19:10];
-  
-  // Si estamos 1x.xx, sumo uno al exponente para que quede 1.xxx
-  // Si estamos en el caso de 1.xx o 0.xx, resto la cantidad de veces necesaria
-  // hasta encontrar el primer 1 (en 1.xx -> shifts = 0)
-  //assign ExpOut = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
-  
-  // La misma idea que ExpOut, pero ahora afectando a la mantisa.
-  //assign Fm = (Debe) ? Fm_out : (Fm_out >> shifts);
-  // Exponente previo a redondeo (misma lógica que ya tenías)
-wire [4:0] exp_pre = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
+  // ------------ Op Section -------------
+  wire [MSIZE: 0] Result = Sm * Rm;
+  wire Debe = Result[MSIZE];
+  wire ShiftCondition = !Debe && !Result[MSIZE - 1];
+  wire [EBS + 5:0] shifts = (ShiftCondition) ? first_one(Result) : 5'b00000;
 
-// Construimos un "stream" para sacar top10/guard/rest y sticky
-wire [27:0] stream0 = {Result[20:0], 6'b0};            // relleno para sticky
-wire [27:0] stream1 = Debe ? (stream0 >> 11) : (stream0 >> 10);
-wire [27:0] stream2 = ShiftCondition ? (stream1 >> shifts) : stream1;
+  wire [EBS:0] exp_pre = (Debe) ? (ExpIn + 1) : (ExpIn - shifts);
 
-// top10 (10), guard (1), rest3 (3) + sticky (1)
-wire [9:0] top10  = stream2[15:6];
-wire       guard  = stream2[5];
-wire [2:0] rest3  = stream2[4:2];
-wire       sticky = |stream2[1:0];                     // OR de lo que queda
-wire [3:0] rest4  = {rest3, sticky};
+  wire [STEAMSIZE: 0] stream0 = {Result[MSIZE: 0], 6'b0};           
+  wire [STEAMSIZE: 0] stream1 = Debe ? (stream0 >> MBS + 2) : (stream0 >> MBS + 1);
+  wire [STEAMSIZE: 0] stream2 = ShiftCondition ? (stream1 << shifts) : stream1;
 
-// Paquete de 15 bits para el redondeo
-wire [14:0] ms15 = {top10, guard, rest4};
+  // top10 (10), guard (1), rest3 (3) + sticky (1)
+  // Genera 5 bits en el LSB para el redondeo
+  wire [MBS:0] top10  = stream2[MBS+6 :6];
+  wire       guard  = stream2[5];
+  wire [2:0] rest3  = stream2[4:2];
+  wire       sticky = |stream2[1:0];                     // OR de lo que queda
+  wire [3:0] rest4  = {rest3, sticky};
 
-// Redondeo al par
-wire [9:0] frac_rnd;
-wire [4:0] exp_rnd;
-RoundNearestEven rne_mul(.ms(ms15), .exp(exp_pre), .ms_round(frac_rnd), .exp_round(exp_rnd));
+  // Paquete de 15 bits para el redondeo
+  wire [FSIZE: 0] ms15 = {top10, guard, rest4};
 
-// Salidas finales de Prod
-assign Fm     = frac_rnd;
-assign ExpOut = exp_rnd;
+  // Redondeo al par
+  wire [MBS:0] frac_rnd;
+  wire [EBS:0] exp_rnd;
+  RoundNearestEven #(.MBS(MBS), .EBS(EBS), .BS(BS), .FSIZE(FSIZE))
+  rne_mul(.ms(ms15), .exp(exp_pre), .ms_round(frac_rnd), .exp_round(exp_rnd));
+
+  // Salidas finales de Prod
+  assign Fm     = frac_rnd;
+  assign ExpOut = exp_rnd;
+
+  // ------------ Flag Section -------------  
+  wire h_overflow;
+  
+  // En Result[MSIZE-2: MSIZE-2-MBS] <- descarta los bits de xx.mantisa, y agarra
+  // los primeros bits pertenecientes a la mantisa.
+  is_inexact #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
+  flag1(.Man(Result[MSIZE-2: MSIZE-2-MBS]), .CarryOut(Debe), .inexact(inexact));
+
+  is_overflow #(.MBS(MBS), .EBS(EBS), .BS(BS))
+  flag2(.Exp(ExpIn), .AddExp(5'b00001), .OverFlow(h_overflow));
+  
+  assign overflow = (Debe) ? h_overflow : 1'b0;
+  
 endmodule
+
 
 
 // #(parameter N=8), LUEGO adaptar con parameter a 32 bits.
-module ProductHP (S, R, F);
+module ProductHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
+  overflow, underflow, inv_op, inexact);
   
-  input [15:0] S, R;
-  output wire [15:0] F;
+  input [BS:0] S, R;
+  output wire [BS:0] F;
+  output overflow, underflow, inv_op, inexact;
   
-  wire[9:0] m1 = S[9:0];
-  wire[9:0] m2 = R[9:0];
+  wire[MBS:0] m1 = S[MBS:0];
+  wire[MBS:0] m2 = R[MBS:0];
   
-  wire[4:0] e1 = S[14:10];
-  wire[4:0] e2 = R[14:10];
+  wire[EBS:0] e1 = S[BS-1: BS-EBS-1];
+  wire[EBS:0] e2 = R[BS-1: BS-EBS-1];
   
-  wire s1 = S[15];
-  wire s2 = R[15];
-  wire sign;
-       
-  // Suma de exponentes en el producto.
-  wire [4:0] exp_to_use = e1 + e2 - 5'd15;
-    
-  // Apartir del signo, sabremos si se suma o se resta.
-  wire boolean2 = (s1 != s2);
-  assign sign = (boolean2) ? 1 : 0;
-  wire [10:0] param_m1 = {1'b1, m1};
-  wire [10:0] param_m2 = {1'b1, m2};
+  wire s1 = S[BS];
+  wire s2 = R[BS];
+  wire sign = s1^s2;
+
+  wire is_zero_s = (e1 == {EBS+1{1'b0}}) && (m1 == {EBS+1{1'b0}});
+  wire is_zero_r = (e2 == {EBS+1{1'b0}}) && (m2 == {EBS+1{1'b0}});
+  wire result_is_zero = is_zero_s | is_zero_r;
+
+  wire [7:0] bias = (EBS == 4) ? 8'd15 : 8'd127;
+  wire [EBS:0] exp_to_use = e1 + e2 - bias;
+  wire [EBS+1:0] evaluate_flags  = e1 + e2;
+  wire [EBS+1:0] despues_la_borro= e1 + e2 - bias;
+
+  wire [MBS+1:0] param_m1 = {1'b1, m1};
+  wire [MBS+1:0] param_m2 = {1'b1, m2};
   
-  wire [9:0] m_final;
-  wire [4:0] exp_final;
-  Prod product_mantisa(param_m1, param_m2, exp_to_use, m_final, exp_final);
-  
-  assign F[15] = sign;
-  assign F[14:10] = exp_final;
-  assign F[9:0] = m_final;
-  
-  
-  initial begin
-    $monitor("m1: %b, m2: %b", m1, m2);
-    $monitor("sign: %b, exp: %b, mantisa: %b, is_resta: %b", sign, exp_final, m_final, boolean2);
-  end
-  
+  wire [MBS:0] m_final;
+  wire [EBS:0] exp_final;
+  wire over_t2, inexact_core;
+
+  Prod #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
+  product_mantisa(param_m1, param_m2, exp_to_use, m_final, exp_final, over_t2, inexact_core);
+
+  assign F[BS]    = result_is_zero ? 1'b0 : sign;
+  assign F[BS-1:BS-EBS-1] = result_is_zero ? {EBS+1{1'b0}} : exp_final;
+  assign F[MBS:0]   = result_is_zero ? {MBS+1{1'b0}} : m_final;
+
+  // ------------------- Flags ---------------------
+  is_invalid_op #(.MBS(MBS), .EBS(EBS), .BS(BS))
+  flag4(.Exp1(e1), .Exp2(e2), .Man1(m1), .Man2(m2), .InvalidOp(inv_op));
+
+  wire over_t1   = (evaluate_flags >= bias) && (despues_la_borro >= {EBS+1{1'b1}});
+  wire under_t1  = (evaluate_flags <  bias);
+
+  assign overflow   = result_is_zero ? 1'b0 : (over_t1 | over_t2 | inv_op);
+  assign underflow  = result_is_zero ? 1'b0 : under_t1;
+  assign inexact    = result_is_zero ? 1'b0 : inexact_core;
+
 endmodule
