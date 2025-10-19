@@ -10,7 +10,6 @@ module Division #(parameter MBS=9, EBS=4, BS=15) (Sm, Rm, ExpIn, Fm, ExpOut,
   output        overflow, underflow, inexact;
 
   parameter FSIZE = MBS + 5;
-  wire [FSIZE:0] FauxWithoutRound;
 
   function [EBS:0] first_one_div;
     input [FSIZE+2:0] bits;
@@ -35,18 +34,17 @@ module Division #(parameter MBS=9, EBS=4, BS=15) (Sm, Rm, ExpIn, Fm, ExpOut,
 
   // 15'b0 <- 5 evaluar redondeo + 10 se puros 0's.
   wire [FSIZE + 10:0] Result = {Sm, {FSIZE+1{1'b0}}} / Rm;
-  wire [FSIZE + 2:0] Faux = Result[FSIZE+2: 0];
+  wire [FSIZE + 2: 0] Faux = Result[FSIZE+2: 0];
 
   wire Debe = Faux[FSIZE + 2];
   wire ShiftCondition = !Debe && !Faux[FSIZE + 1];
 
-  wire [EBS:0] shifts = (ShiftCondition) ? first_one_div(Faux) : {EBS+1{1'b0}};  
-  wire [FSIZE:0] Fm_out = (Debe) ? Faux[FSIZE+1:1] : Faux[FSIZE:0];
-  wire[EBS:0] ExpOut_temp = (Debe) ? (ExpIn) : (ExpIn - shifts);
-  assign FauxWithoutRound = (Debe) ? Fm_out : (Fm_out >> shifts);
+  wire [EBS:0] shifts = (ShiftCondition) ? first_one_div(Faux) : {EBS+1{1'b0}};
+  wire [FSIZE:0] Fm_out = (Debe) ? Faux[FSIZE+1: 1] : (Faux[FSIZE: 0] << shifts);
+  wire[EBS:0] ExpOut_temp = (Debe) ? (ExpIn+1) : (ExpIn - shifts);
 
   RoundNearestEven #(.MBS(MBS), .EBS(EBS), .BS(BS), .FSIZE(FSIZE)) rounder(
-    .ms(FauxWithoutRound),
+    .ms(Fm_out),
     .exp(ExpOut_temp),
     .ms_round(Fm),
     .exp_round(ExpOut)
@@ -61,15 +59,14 @@ module Division #(parameter MBS=9, EBS=4, BS=15) (Sm, Rm, ExpIn, Fm, ExpOut,
 
   wire        lost_shift_bits = (!Debe && (shifts!=0)) ? (|(Faux & low_mask)) : 1'b0;
 
-  wire guard_bit    = FauxWithoutRound[4];
-  wire tail_bits_nz = |FauxWithoutRound[3:0];
+  wire guard_bit    = Fm_out[4];
+  wire tail_bits_nz = |Fm_out[3:0];
 
   assign inexact   = guard_bit | tail_bits_nz | lost_pre_bit | lost_shift_bits | rem_nz;
   assign overflow  = (ExpOut == {EBS+1{1'b1}});
   assign underflow = (ExpOut == {EBS+1{1'b0}}) & inexact;
 
 endmodule
-
 
 module DivHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F, 
   overflow, underflow, inv_op, inexact);
