@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 
 module Division #(parameter MBS=9, EBS=4, BS=15) (Sm, Rm, ExpIn, Fm, ExpOut,
-  overflow, underflow, inexact);
+  underflow, inexact);
 
   input [MBS+1:0] Sm, Rm;
   input [EBS:0] ExpIn;
   output wire [MBS:0] Fm;
   output wire [EBS:0] ExpOut;
-  output        overflow, underflow, inexact;
+  output        underflow, inexact;
 
   parameter FSIZE = MBS + 5;
 
@@ -63,7 +63,6 @@ module Division #(parameter MBS=9, EBS=4, BS=15) (Sm, Rm, ExpIn, Fm, ExpOut,
   wire tail_bits_nz = |Fm_out[3:0];
 
   assign inexact   = guard_bit | tail_bits_nz | lost_pre_bit | lost_shift_bits | rem_nz;
-  assign overflow  = (ExpOut == {EBS+1{1'b1}});
   assign underflow = (ExpOut == {EBS+1{1'b0}}) & inexact;
 
 endmodule
@@ -74,6 +73,7 @@ module DivHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   input [BS:0] S, R;
   output wire [BS:0] F;
   output overflow, underflow, inv_op, inexact;
+  wire over_op_handle, under_op_handle;
 
   wire[MBS:0] m1 = S[MBS:0];
   wire[MBS:0] m2 = R[MBS:0];
@@ -93,18 +93,20 @@ module DivHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   // Suma de exponentes en el producto. FALTA CAMBIAR ESTE 15 POR BIAS
 
   wire [EBS:0] exp_to_use = e1 - e2 + bias;
+  wire [EBS+1:0] evaluate_flags = e1 + bias;
+  wire [EBS+1:0] despues_la_borro = e1 - e2 + bias;
     
   wire [MBS+1:0] param_m1 = {1'b1, m1};
   wire [MBS+1:0] param_m2 = {1'b1, m2};
   
   wire [MBS:0] m_final;
   wire [EBS:0] exp_final;
-  wire of_core, uf_core, ix_core;
+  wire uf_core, ix_core;
 
 
   Division #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
   div(param_m1, param_m2, exp_to_use, m_final, exp_final, 
-      of_core, uf_core, ix_core);
+      uf_core, ix_core);
   
   assign F[BS] = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : sign;
   assign F[BS-1: BS-EBS-1] = (is_zero_dividend && !is_zero_divisor) ? {EBS+1{1'b0}} : exp_final;
@@ -115,8 +117,11 @@ module DivHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
     .Exp1(e1), .Exp2(e2), .Man1(m1), .Man2(m2), .InvalidOp(inv_op)
   );
 
-  assign overflow  = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : of_core;
-  assign underflow = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : uf_core;
+  assign over_op_handle = (evaluate_flags >= e2 && despues_la_borro >= {1'b0, {(EBS+1){1'b1}}});
+  assign under_op_handle = (evaluate_flags < e2);
+
+  assign overflow  = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : 1'b0 || over_op_handle;
+  assign underflow = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : uf_core || under_op_handle;
   assign inexact   = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : ix_core;
 
 endmodule

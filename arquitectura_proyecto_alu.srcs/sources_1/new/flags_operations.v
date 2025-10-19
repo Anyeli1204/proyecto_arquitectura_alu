@@ -47,3 +47,39 @@ module is_invalid_op #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   assign InvalidOp = (is_inf_Val1 | is_inf_Val2 | is_invalid_Val1 | is_invalid_Val2);
 
 endmodule
+
+module is_invalid_val #(
+  parameter MBS = 9, 
+  parameter EBS = 4,  
+  parameter BS  = 15  
+)(
+  input  [BS:0] value,       
+  output        InvalidVal
+);
+
+  wire              sign = value[BS];
+  wire [EBS:0]      Exp  = value[BS-1:MBS+1];
+  wire [MBS:0]      Man  = value[MBS:0];
+
+  assign InvalidVal = (&Exp && |Man);
+
+endmodule
+
+module is_inf_detector #(
+    parameter MBS = 9,   
+    parameter EBS = 4,   
+    parameter BS  = 15   
+)(
+    input  [BS:0]  value,     
+    output         is_posInf, 
+    output         is_negInf
+);
+
+  wire sign = value[BS];
+  wire [EBS:0] Exp = value[BS-1 : BS-EBS-1];
+  wire [MBS:0] Man = value[MBS:0];
+
+  assign is_posInf = (~sign) & (&Exp) & (~|Man); 
+  assign is_negInf = ( sign) & (&Exp) & (~|Man); 
+
+endmodule

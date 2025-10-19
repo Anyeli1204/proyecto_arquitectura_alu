@@ -1,10 +1,10 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Módulo de manejo de casos especiales IEEE 754 Half-Precision
-// Incluye detección de NaN, Inf, denormales, y generación de resultados especiales
+// Mï¿½dulo de manejo de casos especiales IEEE 754 Half-Precision
+// Incluye detecciï¿½n de NaN, Inf, denormales, y generaciï¿½n de resultados especiales
 //////////////////////////////////////////////////////////////////////////////////
 
-// ============== DETECCIÓN DE CASOS ESPECIALES EN OPERANDOS ==============
+// ============== DETECCIï¿½N DE CASOS ESPECIALES EN OPERANDOS ==============
 
 module fp16_classifier #(parameter MBS=9, parameter EBS=4, parameter BS=15)(
   input [BS:0] val,
@@ -47,8 +47,8 @@ module fp16_special_values #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
   neg_zero,
   pos_inf,
   neg_inf,
-  qnan,        // Quiet NaN (señalización silenciosa)
-  snan,        // Signaling NaN (señalización activa)
+  qnan,        // Quiet NaN (seï¿½alizaciï¿½n silenciosa)
+  snan,        // Signaling NaN (seï¿½alizaciï¿½n activa)
   signed_inf,  // Infinity con signo variable
   signed_zero  // Zero con signo variable
 );
@@ -71,7 +71,7 @@ module fp16_special_values #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
   assign signed_zero = sign_in ? neg_zero : pos_zero;
 endmodule
 
-// ============== MANEJO DE CASOS ESPECIALES POR OPERACIÓN ==============
+// ============== MANEJO DE CASOS ESPECIALES POR OPERACIï¿½N ==============
 
 module fp16_special_case_handler #(parameter MBS=9, parameter EBS=4, parameter BS=15)(
   input [BS:0] a,
@@ -103,11 +103,15 @@ module fp16_special_case_handler #(parameter MBS=9, parameter EBS=4, parameter B
     a_sign, pos_zero, neg_zero, pos_inf, neg_inf, qnan, snan,
     signed_inf_a, signed_zero_a
   );
+
+
+
+
   
   // Calcular signo del resultado (fuera del always)
   wire result_sign = a_sign ^ b_sign;
   
-  // ==================== DETECCIÓN DE CASOS ESPECIALES ====================
+  // ==================== DETECCIï¿½N DE CASOS ESPECIALES ====================
   
   reg is_special;
   reg [BS:0] result;
@@ -166,27 +170,27 @@ module fp16_special_case_handler #(parameter MBS=9, parameter EBS=4, parameter B
       end
     end
     
-    // ====== CASO 3: MULTIPLICACIÓN ======
+    // ====== CASO 3: MULTIPLICACIï¿½N ======
     else if (op == 2'b10) begin
-      // Inf × 0 = NaN (INVALID)
+      // Inf ï¿½ 0 = NaN (INVALID)
       if ((a_inf && b_zero) || (a_zero && b_inf)) begin
         is_special = 1'b1;
         result = qnan;
         invalid = 1'b1;
       end
-      // Inf × x = ±Inf (x?0)
+      // Inf ï¿½ x = ï¿½Inf (x?0)
       else if (a_inf || b_inf) begin
         is_special = 1'b1;
         result = result_sign ? neg_inf : pos_inf;
       end
-      // 0 × x = ±0
+      // 0 ï¿½ x = ï¿½0
       else if (a_zero || b_zero) begin
         is_special = 1'b1;
         result = result_sign ? neg_zero : pos_zero;
       end
     end
     
-    // ====== CASO 4: DIVISIÓN ======
+    // ====== CASO 4: DIVISIï¿½N ======
     else if (op == 2'b11) begin
       // 0 / 0 = NaN (INVALID)
       if (a_zero && b_zero) begin
@@ -200,23 +204,23 @@ module fp16_special_case_handler #(parameter MBS=9, parameter EBS=4, parameter B
         result = qnan;
         invalid = 1'b1;
       end
-      // x / 0 = ±Inf (DIVIDE BY ZERO, x?0)
+      // x / 0 = ï¿½Inf (DIVIDE BY ZERO, x?0)
       else if (b_zero && !a_zero) begin
         is_special = 1'b1;
         result = result_sign ? neg_inf : pos_inf;
         div_zero = 1'b1;
       end
-      // Inf / x = ±Inf (x?Inf)
+      // Inf / x = ï¿½Inf (x?Inf)
       else if (a_inf && !b_inf) begin
         is_special = 1'b1;
         result = result_sign ? neg_inf : pos_inf;
       end
-      // x / Inf = ±0
+      // x / Inf = ï¿½0
       else if (b_inf && !a_inf) begin
         is_special = 1'b1;
         result = result_sign ? neg_zero : pos_zero;
       end
-      // 0 / x = ±0 (x?0)
+      // 0 / x = ï¿½0 (x?0)
       else if (a_zero && !b_zero) begin
         is_special = 1'b1;
         result = result_sign ? neg_zero : pos_zero;
@@ -248,6 +252,15 @@ module fp16_flags #(parameter MBS=9, parameter EBS=4, parameter BS=15) (
   input core_overflow, core_underflow, core_inexact;
   input special_invalid, special_div_zero;
 
+  wire is_pos_inf;
+  wire is_neg_inf;
+  is_inf_detector #(.MBS(MBS), .EBS(EBS), .BS(BS))
+  inf_det(
+    .value(result),
+    .is_posInf(is_pos_inf),
+    .is_negInf(is_neg_inf)
+  );
+
   output overflow, underflow, inexact, invalid, div_by_zero;
 
   wire [EBS:0] exp_result = result[BS-1:BS-EBS-1];
@@ -259,18 +272,18 @@ module fp16_flags #(parameter MBS=9, parameter EBS=4, parameter BS=15) (
   wire res_denorm = (exp_result == {EBS+1{1'b0}}) && (man_result != {MBS+1{1'b0}});
   
   // OVERFLOW: resultado es infinito (no NaN)
-  assign overflow = res_inf || core_overflow;
+  assign overflow = res_inf || core_overflow || is_pos_inf;
   
   // UNDERFLOW: resultado es denormal o flushed a cero con inexactitud
-  assign underflow = res_denorm || core_underflow;
+  assign underflow = res_denorm || core_underflow || is_neg_inf;
   
-  // INEXACT: redondeo cambió el resultado
+  // INEXACT: redondeo cambiï¿½ el resultado
   assign inexact = core_inexact || underflow;
   
-  // INVALID: operación no válida (NaN generado)
+  // INVALID: operaciï¿½n no vï¿½lida (NaN generado)
   assign invalid = res_nan || special_invalid;
   
-  // DIVIDE BY ZERO: división por cero (genera infinito)
+  // DIVIDE BY ZERO: divisiï¿½n por cero (genera infinito)
   assign div_by_zero = special_div_zero;
   
 endmodule
