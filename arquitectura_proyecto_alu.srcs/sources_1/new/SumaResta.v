@@ -185,11 +185,7 @@ module RestaMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   
   assign idx_to_use = cond_idx ? idx_e : idx;
 
-  assign F_to_use = (is_mayus_exp || S >= R) ? F_aux : F_aux_e;
-
-  
-
-  
+  assign F_to_use = (is_mayus_exp || S >= R) ? F_aux : F_aux_e;  
 
   RestaExp_sum #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
   sub_exp(ExpIn, idx_to_use, ExpAux);
@@ -201,11 +197,13 @@ module RestaMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   wire [MBS:0] lost_bits = F_to_use >> (MBS + 1 - idx_to_use);
 
   wire[MBS + 5:0] FToRound = {FTemp, lost_bits[4:0]};
+
+
   
   wire[MBS:0] FFinal;
   wire[EBS:0] ExpFinal;
   
-  RoundNearestEven #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
+  RoundNearestEven #(.MBS(MBS), .EBS(EBS), .BS(BS), .FSIZE(MBS+5)) 
   rounder(
     .ms(FToRound),
     .exp(ExpOutTemp),
