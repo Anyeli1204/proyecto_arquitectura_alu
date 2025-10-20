@@ -86,6 +86,87 @@ module tb_alu_sum_32;
 
     #10;
 
+        // =======================
+    // TEST 4 : +INF + 1.0
+    // =======================
+    a = 32'h7F800000; // +Inf
+    b = 32'h3F800000; // +1.0
+    expected = 32'h7F800000; // +Inf
+    expectedFlags = 5'b00101;
+    #10;
+    if (y == expected)
+      $display("✅ Test 4 OK: +Inf + 1.0 = +Inf => %b", y);
+    else
+      $display("❌ Test 4 FAIL: +Inf + 1.0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display("   ✅ Flags OK: %b\n", ALUFlags);
+    else
+      $display("   ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+    // =======================
+    // TEST 5 : -INF + 5.5
+    // =======================
+    a = 32'hFF800000; // -Inf
+    b = 32'h40B00000; // 5.5
+    expected = 32'hFF800000; // -Inf
+    expectedFlags = 5'b00011;
+    #10;
+    if (y == expected)
+      $display("✅ Test 5 OK: -Inf + 5.5 = -Inf => %b", y);
+    else
+      $display("❌ Test 5 FAIL: -Inf + 5.5 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display("   ✅ Flags OK: %b\n", ALUFlags);
+    else
+      $display("   ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+    // =======================
+    // TEST 6 : +INF + -INF = NaN
+    // =======================
+    a = 32'h7F800000; // +Inf
+    b = 32'hFF800000; // -Inf
+    expected = 32'h7FC00000; // QNaN
+    expectedFlags = 5'b00000; // Invalid operation
+    #10;
+    if (y == expected)
+      $display("✅ Test 6 OK: +Inf + -Inf = NaN => %b", y);
+    else
+      $display("❌ Test 6 FAIL: +Inf + -Inf => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display("   ✅ Flags OK: %b\n", ALUFlags);
+    else
+      $display("   ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+    // =======================
+    // TEST 7 : NaN + 5.0 = NaN
+    // =======================
+    a = 32'h7FC00000; // QNaN
+    b = 32'h40A00000; // 5.0
+    expected = 32'h7FC00000; // QNaN (propagado)
+    expectedFlags = 5'b10000;
+    #10;
+    if (y == expected)
+      $display("✅ Test 7 OK: NaN + 5.0 = NaN => %b", y);
+    else
+      $display("❌ Test 7 FAIL: NaN + 5.0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display("   ✅ Flags OK: %b\n", ALUFlags);
+    else
+      $display("   ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+
     $finish;
   end
 
