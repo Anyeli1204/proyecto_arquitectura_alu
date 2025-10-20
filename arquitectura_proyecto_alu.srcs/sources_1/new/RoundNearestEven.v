@@ -26,7 +26,7 @@ module RoundNearestEven #(parameter MBS=9, parameter EBS=4, parameter BS=15, par
   output [MBS:0]  ms_round;
   output [EBS:0]  exp_round;
 
-  wire guard   = ms[EBS];
+  wire guard   = ms[4];
 
   wire boolean = |ms[3:0];
 

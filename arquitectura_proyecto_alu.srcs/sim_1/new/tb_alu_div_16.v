@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module tb_alu_bin;
+module tb_alu_div_16;
 
   // Señales
   reg [15:0] a, b;
@@ -234,7 +234,7 @@ module tb_alu_bin;
     #10;
 
     // =======================
-    // TEST 10 : UNDERFLOW CASO 1
+    // TEST 11 : UNDERFLOW CASO 2
     // =======================
     a = 16'b0_00110_0110111000; // 0.00279
     b = 16'b0_11110_0001111000; // 36659.2
@@ -255,7 +255,7 @@ module tb_alu_bin;
     #10;
 
     // =======================
-    // TEST 10 : UNDERFLOW CASO 1
+    // TEST 12 : NaN propagation
     // =======================
     a = 16'b0_11111_0110111000; // NaN
     b = 16'b0_10000_0000000000; // 2
@@ -264,9 +264,9 @@ module tb_alu_bin;
 
     #10;
     if (y == expected)
-      $display("✅ Test 11 OK:  1e-7 / 2 => %b (esperado %b)", y, expected);
+      $display("✅ Test 11 OK:  NaN / 2 => %b (esperado %b)", y, expected);
     else
-      $display("❌ Test 11 FAIL: 1e-7 / 2 => %b (esperado %b)", y, expected);
+      $display("❌ Test 11 FAIL: NaN / 2 => %b (esperado %b)", y, expected);
     #1;
     if (ALUFlags == expectedFlags)
       $display(" ✅ Flags OK: %b (esperado %b)\n", ALUFlags, expectedFlags);
