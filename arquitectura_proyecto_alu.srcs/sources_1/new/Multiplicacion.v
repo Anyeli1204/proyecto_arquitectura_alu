@@ -138,4 +138,5 @@ module ProductHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   assign underflow  = result_is_zero ? 1'b0 : under_t1;
   assign inexact    = result_is_zero ? 1'b0 : inexact_core;
 
+
 endmodule

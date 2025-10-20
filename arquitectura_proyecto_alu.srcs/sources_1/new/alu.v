@@ -188,6 +188,9 @@ module alu #(parameter system = 16) (
       if (ov_raw) begin
         y_pre = { sign_res, {EXP_BITS{1'b1}}, {FRAC_BITS{1'b0}} }; // �Inf
       end
+      if (un_raw) begin
+        y_pre = { sign_res, {EXP_BITS{1'b0}}, {FRAC_BITS{1'b0}} };
+      end
 
       // 3) Clasificaci�n del RESULTADO FINAL (ya normalizado/redondeado/saturado)
       r_exp   = y_pre[SIGN_POS-1 -: EXP_BITS];

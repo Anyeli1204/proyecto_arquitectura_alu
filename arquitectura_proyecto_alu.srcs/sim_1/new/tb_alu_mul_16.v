@@ -54,9 +54,9 @@ module tb_alu_mul_16;
 
     #10;
     if (y == expected)
-      $display("✅ Test 1 OK: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
+      $display("✅ Test 2 OK: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
     else
-      $display("❌ Test 1 FAIL: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
+      $display("❌ Test 2 FAIL: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
     #1;
     if (ALUFlags == expectedFlags)
       $display(" ✅ Flags OK: %b\n", ALUFlags);
@@ -75,9 +75,9 @@ module tb_alu_mul_16;
 
     #10;
     if (y == expected)
-      $display("✅ Test 1 OK: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
+      $display("✅ Test 3 OK: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
     else
-      $display("❌ Test 1 FAIL: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
+      $display("❌ Test 3 FAIL: 12.45 * 1.224e+03 => %b (esperado %b)", y, expected);
     #1;
     if (ALUFlags == expectedFlags)
       $display(" ✅ Flags OK: %b\n", ALUFlags);
@@ -86,6 +86,47 @@ module tb_alu_mul_16;
 
     #10;
 
+    // =======================
+    // TEST 4: UNDERFLOW + INEXACT
+    // =======================
+    a = 16'b0000000001000000; // 0.00123
+    b = 16'b0000000001100000; // 0.000001
+    expected = 16'b0000000000000000; // 0.0 <- UnderFlow
+    expectedFlags = 5'b00011; 
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 4 OK: 0.00123 * 0.000001 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 4 FAIL: 0.00123 * 0.000001 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+    else
+      $display(" ❌ Flags FAIL: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+
+    #10;
+
+    // =======================
+    // TEST 4: NAN
+    // =======================
+    a = 16'b0111110001000000; // NaN
+    b = 16'b0011110000000000; // 0.000001
+    expected = 16'b0111111000000000; // 0.0
+    expectedFlags = 5'b10000; 
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 4 OK: NaN * 0.000001 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 4 FAIL: NaN * 0.000001 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+    else
+      $display(" ❌ Flags FAIL: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+
+    #10;
 
 
     $finish;
