@@ -217,7 +217,7 @@ module tb_alu_div_16;
     // =======================
     a = 16'b0_00000_0000000010; // 1e-7
     b = 16'b0_10000_0000000000; // 2
-    expected = 16'b0111110000000010; // ≈ INF
+    expected = 16'b0_00000_0000000000; // ≈ INF
     expectedFlags = 5'b00011;
 
     #10;
@@ -238,7 +238,7 @@ module tb_alu_div_16;
     // =======================
     a = 16'b0_00110_0110111000; // 0.00279
     b = 16'b0_11110_0001111000; // 36659.2
-    expected = 16'b0_10111_0100011110; // ≈ INF
+    expected = 16'b0_00000_0000000000; // ≈ INF
     expectedFlags = 5'b00011;
 
     #10;
@@ -258,15 +258,15 @@ module tb_alu_div_16;
     // TEST 12 : NaN propagation
     // =======================
     a = 16'b0_11111_0110111000; // NaN
-    b = 16'b0_10000_0000000000; // 2
+    b = 16'b0_10111_0000000000; // 2
     expected = 16'b0_111111_000000000; // ≈ INF
     expectedFlags = 5'b10000;
 
     #10;
     if (y == expected)
-      $display("✅ Test 11 OK:  NaN / 2 => %b (esperado %b)", y, expected);
+      $display("✅ Test 12 OK:  NaN / 2 => %b (esperado %b)", y, expected);
     else
-      $display("❌ Test 11 FAIL: NaN / 2 => %b (esperado %b)", y, expected);
+      $display("❌ Test 12 FAIL: NaN / 2 => %b (esperado %b)", y, expected);
     #1;
     if (ALUFlags == expectedFlags)
       $display(" ✅ Flags OK: %b (esperado %b)\n", ALUFlags, expectedFlags);
@@ -274,6 +274,26 @@ module tb_alu_div_16;
       $display(" ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
 
     #10;
+
+    // =======================
+    // TEST 12 : NaN propagation
+    // =======================
+    a = 16'b0_11011_0110111000; // 5873.28
+    b = 16'b0_00000_0000000000; // 0.0
+    expected = 16'b0_11111_0000000000; // ≈ INF
+    expectedFlags = 5'b01010;
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 12 OK:  5873.28 / 0 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 12 FAIL: 5873.28 / 0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: %b (esperado %b)\n", ALUFlags, expectedFlags);
+    else
+      $display(" ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
 
     $finish;
   end
