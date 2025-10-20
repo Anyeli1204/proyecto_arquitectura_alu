@@ -72,9 +72,9 @@ module right_shift_pf_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   wire [MBS+11:0] shifted = full_value >> shifts;
   
   assign F = shifted[MBS+11: 10];          
-  assign guard_bit = shifted[MBS];      
-  assign sticky_bits = |shifted[MBS-1: 0]; 
-  assign inexact_flag = |shifted[MBS: 0];
+  assign guard_bit = shifted[9];      
+  assign sticky_bits = |shifted[8: 0]; 
+  assign inexact_flag = |shifted[9: 0];
   
 endmodule
 
@@ -297,8 +297,8 @@ module Suma16Bits #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   wire [EBS:0] final_exp = (boolean2) ? exp_sum_sub : exp_sum_add;
   
   assign F[BS] = (boolean2 && is_zero_result) ? 1'b0 : sign;
-  assign F[BS-1: BS-EBS-1] =  final_exp;
-  assign F[MBS:0] =  op_sum;
+  assign F[BS-1: BS-EBS-1] = is_zero_result ? {EBS+1{1'b0}}: final_exp;
+  assign F[MBS:0] = is_zero_result ? {MBS+1{1'b0}} : op_sum;
   
   assign inexact = lost_align;
   assign overflow = ( final_exp == {EBS+1{1'b1}} );
