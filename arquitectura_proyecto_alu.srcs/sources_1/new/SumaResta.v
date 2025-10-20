@@ -170,19 +170,27 @@ module RestaMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)
       FullSub_add sub_i_extremo(R[i], S[i], Debe_e[i], Debe_e[i+1], F_aux_e[i]);
     end
   endgenerate
-  
+
+
   wire[EBS:0] idx, idx_e, ExpAux, idx_to_use;
   assign idx = first_one_9bits(F_aux);
   assign idx_e = first_one_9bits(F_aux_e);
   
+  // Debe estar bien...
   wire cond_idx = (!is_mayus_exp && !is_same_exp) || (is_same_exp && Debe[MBS+1]);
 
+  // Esto está bien...
   wire cond_F_shift = (!is_mayus_exp  && Debe_e[MBS+1]) || is_same_exp || 
   (is_mayus_exp && Debe[MBS+1]);
   
   assign idx_to_use = cond_idx ? idx_e : idx;
-  assign F_to_use = !is_mayus_exp ? F_aux_e : F_aux;
+
+  assign F_to_use = (is_mayus_exp || S >= R) ? F_aux : F_aux_e;
+
   
+
+  
+
   RestaExp_sum #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
   sub_exp(ExpIn, idx_to_use, ExpAux);
 
