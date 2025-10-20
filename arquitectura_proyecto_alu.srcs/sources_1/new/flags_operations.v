@@ -83,3 +83,18 @@ module is_inf_detector #(
   assign is_negInf = ( sign) & (&Exp) & (~|Man); 
 
 endmodule
+
+module both_are_inf #(
+    parameter MBS = 9,   
+    parameter EBS = 4,   
+    parameter BS  = 15   
+) (input [BS:0] v1, input[BS:0] v2,
+  output is_both_inf);
+
+  wire i1_1, i1_2, i2_1, i2_2;
+  is_inf_detector inf1(v1, i1_1, i1_2);
+  is_inf_detector inf2(v2, i2_1, i2_2);
+
+  assign is_both_inf = (i1_1 || i1_2) && (i2_1 || i2_2);
+
+endmodule

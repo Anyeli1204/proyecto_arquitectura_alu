@@ -121,6 +121,9 @@ module alu #(parameter system = 16) (
   is_invalid_val #(.MBS(MBS), .EBS(EBS), .BS(BS)) inv_val_1(a, is_inv_a);
   is_invalid_val #(.MBS(MBS), .EBS(EBS), .BS(BS)) inv_val_2(b, is_inv_b);
 
+  wire both_inf;
+  both_are_inf #(.MBS(MBS), .EBS(EBS), .BS(BS)) both_val_infs(a, b, both_inf);
+
   // ================== Selecci�n y flags ==================
   always @* begin
     // Defaults para evitar latches
@@ -156,7 +159,7 @@ module alu #(parameter system = 16) (
       if (special_div_zero) begin
         // x/�0 con x finito ? �Inf; SOLO div0=1
         ALUFlags = {special_invalid, 1'b1, 1'b0, 1'b1, 1'b0};
-      end else if (special_invalid && (is_inv_a | is_inv_b)) begin
+      end else if (special_invalid || both_inf) begin
         // NaN (0/0, ?-?, 0*?, etc.)
         ALUFlags = 5'b1_0_0_0_0;
       end else if (special_is_inf) begin

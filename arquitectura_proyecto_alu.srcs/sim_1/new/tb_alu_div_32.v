@@ -217,7 +217,7 @@ module tb_alu_div_32;
     // =======================
     a = 32'b0_00000000_00000000000000000000010; // 1e-7
     b = 32'b0_10000000_00000000000000000000000; // 2.0
-    expected = 32'b0_11111111_00000000000000000000010; // +INF (underflow)
+    expected = 32'b0_000000000_0000000000000000000000; // +INF (underflow)
     expectedFlags = 5'b00011;
 
     #10;
@@ -274,6 +274,31 @@ module tb_alu_div_32;
       $display(" ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
 
     #10;
+
+    // =======================
+    // TEST 12 : Number / DIV ZERO
+    // =======================
+    a = 32'b0_11001111_01101110000111000000000; //
+    b = 32'b0_00000000_00000000000000000000000; // 0
+    expected = 32'b0_11111111_00000000000000000000000; // NaN (propagated)
+    expectedFlags = 5'b01010;
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 13 OK:  Number / 0 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 13 FAIL: Number / 0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: %b (esperado %b)\n", ALUFlags, expectedFlags);
+    else
+      $display(" ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+    
+
+
 
     $finish;
   end

@@ -132,7 +132,7 @@ module tb_alu_sum_32;
     a = 32'h7F800000; // +Inf
     b = 32'hFF800000; // -Inf
     expected = 32'h7FC00000; // QNaN
-    expectedFlags = 5'b00000; // Invalid operation
+    expectedFlags = 5'b10000; // Invalid operation
     #10;
     if (y == expected)
       $display("✅ Test 6 OK: +Inf + -Inf = NaN => %b", y);
