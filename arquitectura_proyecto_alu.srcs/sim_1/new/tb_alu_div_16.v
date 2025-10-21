@@ -336,6 +336,27 @@ module tb_alu_div_16;
 
     #10;
 
+    // =======================
+    // TEST 13 : INF/0
+    // =======================
+    a = 16'b0_11111_0000000000; // INF
+    b = 16'b1_00000_0000000000; // 0.0
+    expected = 16'b1111110000000000; // ≈ INF
+    expectedFlags = 5'b0100;
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 13 OK:  INF / 0 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 13 FAIL: INF / 0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: %b (esperado %b)\n", ALUFlags, expectedFlags);
+    else
+      $display(" ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
     $finish;
   end
 

@@ -63,7 +63,7 @@ module fp16_special_values #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
   assign pos_inf  = is_half ? 16'h7C00 : 32'h7F800000;  // +Infinity
   assign neg_inf  = is_half ? 16'hFC00 : 32'hFF800000;  // -Infinity
 
-  assign qnan     = is_half ? 16'h7C00 : 32'h7F800000;  // Quiet NaN (canonical)
+  assign qnan     = is_half ? 16'h7E00 : 32'h7FC00000;  // Quiet NaN (canonical)
   assign snan     = is_half ? 16'h7D00 : 32'h7F800001;  // Signaling NaN
   
   // Con signo parametrizable

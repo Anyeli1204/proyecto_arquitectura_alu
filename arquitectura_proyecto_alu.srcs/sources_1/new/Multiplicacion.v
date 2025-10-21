@@ -72,10 +72,8 @@ module Prod #(parameter MBS=9, parameter EBS=4, parameter BS=15) (Sm, Rm, ExpIn,
   // ------------ Flag Section -------------  
   wire h_overflow;
   
-  // En Result[MSIZE-2: MSIZE-2-MBS] <- descarta los bits de xx.mantisa, y agarra
-  // los primeros bits pertenecientes a la mantisa.
-  is_inexact #(.MBS(MBS), .EBS(EBS), .BS(BS)) 
-  flag1(.Man(Result[MSIZE-2: MSIZE-2-MBS]), .CarryOut(Debe), .inexact(inexact));
+  // Si en la parte adicional hay almenos 1 bit de 1, la operación es inexacta.
+  assign inexact = guard | |rest4;
   
   is_overflow #(.MBS(MBS), .EBS(EBS), .BS(BS))
   flag2(.Exp(ExpIn), .AddExp(5'b00001), .OverFlow(h_overflow));
