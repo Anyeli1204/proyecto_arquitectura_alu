@@ -75,13 +75,13 @@ module tb_RoundNearestEven_more;
   integer i;
 
   initial begin
-    $display("===== Directed tests (casos clásicos) =====");
+    $display("===== Directed tests (casos clï¿½sicos) =====");
 
     // A) guard=0 ? nunca incrementa (trunca)
     do_case(10'b1010101010, 1'b0, 4'b0000, 5'b01101, "A1 guard=0 rest=0 lsb=0 ? trunc");
     do_case(10'b1001000001, 1'b0, 4'b0100, 5'b01111, "A2 guard=0 rest>0 lsb=1 ? trunc");
 
-    // B) empate (guard=1, rest=0) ? redondea al par (según LSB)
+    // B) empate (guard=1, rest=0) ? redondea al par (segï¿½n LSB)
     do_case(10'b0000000010, 1'b1, 4'b0000, 5'b01111, "B1 tie, lsb=0 ? keep (even)");
     do_case(10'b0000000001, 1'b1, 4'b0000, 5'b01111, "B2 tie, lsb=1 ? +1  (odd?even)");
     do_case(10'b1111111111, 1'b1, 4'b0000, 5'b01111, "B3 tie, all1 + carry ? frac=0 exp+1");
@@ -91,7 +91,7 @@ module tb_RoundNearestEven_more;
     do_case(10'b0000000011, 1'b1, 4'b0010, 5'b10000, "C2 >1/2, lsb=1 ? +1");
     do_case(10'b1111111111, 1'b1, 4'b1111, 5'b01110, "C3 >1/2, all1 + carry ? frac=0 exp+1");
 
-    // D) casos cero/top10 pequeños
+    // D) casos cero/top10 pequeï¿½os
     do_case(10'b0000000000, 1'b1, 4'b0000, 5'b01101, "D1 top10=0, tie lsb=0 ? keep");
     do_case(10'b0000000000, 1'b1, 4'b0001, 5'b01101, "D2 top10=0, >1/2 ? +1 (frac=1)");
 

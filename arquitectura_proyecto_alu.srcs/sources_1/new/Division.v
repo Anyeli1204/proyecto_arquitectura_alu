@@ -120,10 +120,6 @@ module DivHP #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   assign over_op_handle = (evaluate_flags >= e2 && despues_la_borro >= {1'b0, {(EBS+1){1'b1}}});
   assign under_op_handle = (evaluate_flags < e2);
 
-  always @(*) begin
-    $display("suma: %b, e2: %b, e1: %b, under: %b", evaluate_flags, e2, e1, under_op_handle);
-  end
-
   assign overflow  = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : 1'b0 || over_op_handle;
   assign underflow = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : uf_core || under_op_handle;
   assign inexact   = (is_zero_dividend && !is_zero_divisor) ? 1'b0 : ix_core;

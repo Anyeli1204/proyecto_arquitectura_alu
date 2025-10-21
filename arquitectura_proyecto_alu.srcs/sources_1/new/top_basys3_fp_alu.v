@@ -3,7 +3,7 @@
 
 //======================= Wrapper: adapta 'alu' al enunciado =======================
 module fp_alu #(
-  parameter SUPPORT_SINGLE = 1  // pon 0 si aún no usas 32 bits
+  parameter SUPPORT_SINGLE = 1  // pon 0 si aï¿½n no usas 32 bits
 )(
   input              clk,
   input              rst,
@@ -80,7 +80,7 @@ module edge_up(input clk, input btn_raw, output pulse);
   assign pulse = s & ~s_d;
 endmodule
 
-// ========================= 7 segmentos (ÁNODO COMÚN, activo en BAJO) =========================
+// ========================= 7 segmentos (ï¿½NODO COMï¿½N, activo en BAJO) =========================
 module hex7(input [3:0] nib, output reg [6:0] seg);
   // seg = {a,b,c,d,e,f,g} ; 0 enciende
   always @* begin
@@ -109,7 +109,7 @@ endmodule
 module sevenseg_mux(
   input        clk,           // 100 MHz
   input [15:0] value,         // 4 nibbles HEX
-  output reg [3:0] an,        // ánodos (activos en bajo)
+  output reg [3:0] an,        // ï¿½nodos (activos en bajo)
   output reg [6:0] seg,       // segmentos (activos en bajo)
   output       dp
 );
@@ -166,7 +166,7 @@ module top_basys3_fp_alu #(
   edge_up e_next (CLK100MHZ, BTNR, p_next);
   wire rst_sync = p_reset;
 
-  //--------------- Selección de bloque 0..1 (half) o 0..3 (single) ---------------
+  //--------------- Selecciï¿½n de bloque 0..1 (half) o 0..3 (single) ---------------
   reg [1:0] chunk_idx = 2'd0;
   always @(posedge CLK100MHZ) begin
     if (rst_sync) chunk_idx <= 2'd0;
@@ -191,7 +191,7 @@ module top_basys3_fp_alu #(
     end
   end
 
-  //--------------- Progreso visual (cuántos bytes ya cargaste) ---------------
+  //--------------- Progreso visual (cuï¿½ntos bytes ya cargaste) ---------------
   reg [3:0] loaded_mask_A = 4'b0000;
   reg [3:0] loaded_mask_B = 4'b0000;
   always @(posedge CLK100MHZ) begin
@@ -233,7 +233,7 @@ module top_basys3_fp_alu #(
     .result(y), .valid_out(valid), .flags(flags_wrapped)
   );
 
-  // Latch para mostrar último resultado/flags
+  // Latch para mostrar ï¿½ltimo resultado/flags
   reg [31:0] disp_latch = 32'h0000_0000;
   reg [4:0]  flags_latch = 5'b0;
   always @(posedge CLK100MHZ or posedge rst_sync) begin
@@ -257,12 +257,12 @@ module top_basys3_fp_alu #(
   assign leds_status[6]    = valid;             // pulso "listo"
   assign leds_status[7]    = sel_b;             // 0=A,1=B
   assign leds_status[8]    = mode_fp;           // 0=half,1=single
-  assign leds_status[11:9] = {1'b0, op2};       // operación
+  assign leds_status[11:9] = {1'b0, op2};       // operaciï¿½n
   assign leds_status[13:12]= chunk_idx;         // bloque actual
   assign leds_status[14]   = show_upper;        // MSB/LSB en 7seg (single)
   assign leds_status[15]   = slow_tick;         // tick visual
 
-  // -------- Selección de modo de LEDs --------
+  // -------- Selecciï¿½n de modo de LEDs --------
   assign LED = progress_mode ? prog_leds_sel : leds_status;
 
   //--------------- 7 segmentos (HEX del resultado) ---------------

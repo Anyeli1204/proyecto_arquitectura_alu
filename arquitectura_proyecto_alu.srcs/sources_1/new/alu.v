@@ -157,7 +157,6 @@ module alu #(parameter system = 16) (
 
       // {invalid, div0, ovf, unf, inx}
       if (special_div_zero) begin
-        // x/�0 con x finito ? �Inf; SOLO div0=1
         ALUFlags = {special_invalid, 1'b1, 1'b0, 1'b1, 1'b0};
       end else if (special_invalid || both_inf) begin
         // NaN (0/0, ?-?, 0*?, etc.)

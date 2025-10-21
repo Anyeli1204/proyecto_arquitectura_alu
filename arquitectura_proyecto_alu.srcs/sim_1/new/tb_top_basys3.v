@@ -20,7 +20,7 @@ module top_basys3_fp_alu_tb;
   // Clock 100 MHz
   always #5 CLK100MHZ = ~CLK100MHZ;
 
-  // --- Helpers para "pulsar" botones (edge_up usa 2FF, así que dejo 3 ciclos) ---
+  // --- Helpers para "pulsar" botones (edge_up usa 2FF, asï¿½ que dejo 3 ciclos) ---
   task press_start();  begin BTNC=1; repeat(3) @(posedge CLK100MHZ); BTNC=0; end endtask
   task press_reset();  begin BTND=1; repeat(3) @(posedge CLK100MHZ); BTND=0; end endtask
   task press_load();   begin BTNL=1; repeat(3) @(posedge CLK100MHZ); BTNL=0; end endtask
@@ -38,7 +38,7 @@ module top_basys3_fp_alu_tb;
     begin SW[10:9] = op2; end
   endtask
 
-  // --- Carga HALF (16b) en A o B: se envían 2 bytes (LSB primero) ---
+  // --- Carga HALF (16b) en A o B: se envï¿½an 2 bytes (LSB primero) ---
   task load_half(input bit is_b, input [15:0] h);
     begin
       set_mode(1'b0);           // half
@@ -64,7 +64,7 @@ module top_basys3_fp_alu_tb;
     end
   endtask
 
-  // Accesos jerárquicos útiles para asserts (señales internas del top)
+  // Accesos jerï¿½rquicos ï¿½tiles para asserts (seï¿½ales internas del top)
   // y : resultado 32b; valid : pulso; flags_wrapped : {invalid, div0, ovf, unf, inx}
   wire [31:0] y          = UUT.y;
   wire        valid      = UUT.valid;
@@ -81,7 +81,7 @@ module top_basys3_fp_alu_tb;
     load_half(1'b0, 16'h3C00);   // A
     load_half(1'b1, 16'h4000);   // B
     set_op(2'b00);               // ADD
-    SW[14] = 1'b0;               // mostrar LSB en 7seg (no afecta a la verificación)
+    SW[14] = 1'b0;               // mostrar LSB en 7seg (no afecta a la verificaciï¿½n)
     press_start();
     // espera valid
     wait(valid==1'b1); @(posedge CLK100MHZ); // 1 ciclo de margen
@@ -91,7 +91,7 @@ module top_basys3_fp_alu_tb;
     assert(flags_wrap == 5'b00000)
       else $fatal("HALF ADD flags inesperados: %b", flags_wrap);
 
-    // --------- pequeño gap ---------
+    // --------- pequeï¿½o gap ---------
     repeat(5) @(posedge CLK100MHZ);
     press_reset(); repeat(2) @(posedge CLK100MHZ);
 
@@ -106,7 +106,7 @@ module top_basys3_fp_alu_tb;
       else $fatal("SINGLE DIV/0 fallo: got=%h exp=%h", y, 32'h7F800000);
     assert(flags_wrap[3] == 1'b1)    // div-by-zero
       else $fatal("SINGLE DIV/0: flag div0 no activo");
-    // (según tu handler, overflow podría estar 1; no lo forzamos aquí)
+    // (segï¿½n tu handler, overflow podrï¿½a estar 1; no lo forzamos aquï¿½)
 
     $display("? Todos los tests del top pasaron. ");
     $finish;

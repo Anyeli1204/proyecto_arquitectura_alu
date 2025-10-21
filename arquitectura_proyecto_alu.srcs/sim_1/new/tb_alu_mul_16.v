@@ -127,7 +127,48 @@ module tb_alu_mul_16;
       $display(" ❌ Flags FAIL: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
 
     #10;
+    
+    // =======================
+    // TEST 4: Number * 0.0
+    // =======================
+    a = 16'b0_11001_0001101000; // Number
+    b = 16'b0_00000_0000000000; // 0.0
+    expected = 16'b0_00000_0000000000; // 0.0
+    expectedFlags = 5'b00000; 
 
+    #10;
+    if (y == expected)
+      $display("✅ Test 5 OK: Number * 0.0 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 5 FAIL: Number * 0.0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+    else
+      $display(" ❌ Flags FAIL: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+
+    #10;
+
+    // =======================
+    // TEST 4: 0.0 * 0.0
+    // =======================
+    a = 16'b0_00000_0000000000; // Number
+    b = 16'b0_00000_0000000000; // 0.0
+    expected = 16'b0_00000_0000000000; // 0.0
+    expectedFlags = 5'b00000; 
+
+    #10;
+    if (y == expected)
+      $display("✅ Test 6 OK: 0.0 * 0.0 => %b (esperado %b)", y, expected);
+    else
+      $display("❌ Test 6 FAIL: 0.0 * 0.0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display(" ✅ Flags OK: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+    else
+      $display(" ❌ Flags FAIL: expectedFlags: %b, %b\n", expectedFlags, ALUFlags);
+
+    #10;
 
     $finish;
   end

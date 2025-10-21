@@ -229,6 +229,27 @@ module tb_alu_sub_16;
 
     #10;
 
+    // =======================
+    // TEST 11 : 0.0 + 0.0
+    // =======================
+    a = 16'b0_00000_0000000000; // 0
+    b = 16'b0_00000_0000000000; // 0
+    expected = 16'b0_00000_0000000000; // 0
+    expectedFlags = 5'b00000;
+    #10;
+    if (y == expected)
+      $display("✅ Test 11 OK: 0 + 0 = 0 => %b", y);
+    else
+      $display("❌ Test 11 FAIL: 0 + 0 => %b (esperado %b)", y, expected);
+    #1;
+    if (ALUFlags == expectedFlags)
+      $display("   ✅ Flags OK: %b\n", ALUFlags);
+    else
+      $display("   ❌ Flags FAIL: %b (esperado %b)\n", ALUFlags, expectedFlags);
+
+    #10;
+
+
 
 
     $finish;

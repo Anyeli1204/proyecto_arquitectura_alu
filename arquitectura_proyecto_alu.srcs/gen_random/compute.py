@@ -1,97 +1,91 @@
-import struct
-import math
 import numpy as np
 
 
-# Conversión binario <-> float 
-def bin_to_float(bstr, bits=16):
-    if bits == 32:
-        i = int(bstr, 2)
-        return struct.unpack('>f', struct.pack('>I', i))[0]
-    elif bits == 16:
-        i = int(bstr, 2)
-        return np.frombuffer(struct.pack('>H', i), dtype=np.float16)[0].item()
-    else:
-        raise ValueError("Solo se permiten 16 o 32 bits")
+# --- Conversión binario ↔ float ---
+def bits_to_float(f, bits):
+
+    i = int(f, 2)
+    ftype = np.float16 if bits == 16 else np.float32
+    dftype = np.uint16 if bits == 16 else np.uint32
+    return np.frombuffer(dftype(i).tobytes(), dtype=ftype)[0]
 
 
-def float_to_bin(f, bits=16):
-    if math.isnan(f):
-        # Convertir NaN a +inf
-        f = float('inf')
-    if math.isinf(f):
-        sign = '1' if math.copysign(1.0, f) < 0 else '0'
-        if bits == 16:
-            return sign + "1111100000000000"
-        else:
-            return sign + "11111111000000000000000000000000"
-    if bits == 32:
-        b = struct.pack('>f', f)
-        i = struct.unpack('>I', b)[0]
-        return format(i, '032b')
-    elif bits == 16:
-        hf = np.float16(f)
-        i = struct.unpack('>H', hf.tobytes())[0]
-        return format(i, '016b')
-    else:
-        raise ValueError("Solo se permiten 16 o 32 bits")
+def float_to_bits(f, bits):
+    """
+    Convierte un float16 a su representación binaria IEEE-754 (cadena de 16 bits).
+    """
+    ftype = np.float16 if bits == 16 else np.float32
+    dftype = np.uint16 if bits == 16 else np.uint32
+    [d] = np.frombuffer(ftype(f).tobytes(), dtype=dftype)
+    return format(int(d), f'0{bits}b')
 
 
 # --- Cálculo de flags y resultado ---
-def calc_flags(a, b, op):
+def calc_flags_ieee(a_bits, b_bits, op, bits=16):
+    """
+    Calcula el resultado y flags IEEE simplificadas para half o single precision
+    Flags: invalid, div0, ovf, unf, inx
+    Retorna:
+        bits_result: cadena de bits IEEE-754 del resultado
+        flags: cadena de 5 bits 'invalid div0 ovf unf inx'
+    """
+    # Convertir cadenas a float IEEE
+    a = bits_to_float(a_bits, bits)
+    b = bits_to_float(b_bits, bits)
+    ftype = np.float16 if bits == 16 else np.float32
 
     invalid = div0 = ovf = unf = inx = 0
-    r = 0.0
+    r = ftype(0.0)
 
-    # NaN → +inf
-    if math.isnan(a) or math.isnan(b):
-        r = float('inf')
+    # ---------- Casos especiales ----------
+    # NaN
+    if np.isnan(a) or np.isnan(b):
+        r = ftype(np.inf)
         invalid = 1
-        return r, f"{invalid}{div0}{ovf}{unf}{inx}"
-
-    # Infinito + -Infinito → +inf (antes era NaN)
-    if math.isinf(a) and math.isinf(b):
-        if op in ['00', '01']:  # add o sub
-            r = float('inf')
-            invalid = 1
-            return r, f"{invalid}{div0}{ovf}{unf}{inx}"
-
+    # Infinito ± infinito en suma/resta
+    elif np.isinf(a) and np.isinf(b) and op in ['00', '01']:
+        r = ftype(np.inf)
+        invalid = 1
     # División por cero
-    if op == '11' and b == 0.0:
+    elif op == '11' and b == ftype(0.0):
         div0 = 1
-        r = float('inf')
         inx = 1
-        return r, f"{invalid}{div0}{ovf}{unf}{inx}"
+        r = ftype(np.inf) if a >= 0 else ftype(-np.inf)
+    else:
+        # ---------- Operación normal ----------
+        try:
+            if op == '00':  # suma
+                r = ftype(a) + ftype(b)
+            elif op == '01':  # resta
+                r = ftype(a) - ftype(b)
+            elif op == '10':  # multiplicación
+                r = ftype(a) * ftype(b)
+            elif op == '11':  # división
+                r = ftype(a) / ftype(b)
+        except Exception:
+            r = ftype(np.inf)
+            invalid = 1
 
-    # Calcular operación
-    try:
-        if op == '00':  # add
-            r = a + b
-        elif op == '01':  # sub
-            r = a - b
-        elif op == '10':  # mul
-            r = a * b
-        elif op == '11':  # div
-            r = a / b
-    except Exception:
-        r = float('inf')
+    # ---------- Flags por magnitud ----------
+    if np.isnan(r):
         invalid = 1
-        return r, f"{invalid}{div0}{ovf}{unf}{inx}"
-
-    # Flags por magnitud
-    if math.isinf(r) or abs(r) > np.finfo(np.float16).max:
+    elif np.isinf(r) or abs(r) > np.finfo(ftype).max:
         ovf = 1
         inx = 1
-        r = float('inf')
-    elif 0 < abs(r) < np.finfo(np.float16).tiny:
+        r = ftype(np.inf)
+    elif 0 < abs(r) < np.finfo(ftype).tiny:
         unf = 1
         inx = 1
-        r = 0.0  # underflow -> full 0
+        r = ftype(0.0)
 
-    return r, f"{invalid}{div0}{ovf}{unf}{inx}"
+    # Convertir resultado a bits IEEE
+    bits_result = float_to_bits(r, bits)
+    flags = f"{invalid}{div0}{ovf}{unf}{inx}"
+
+    return bits_result, flags
 
 
-# Generador de archivo de salida 
+# --- Generador de archivo de salida ---
 def generar_output(input_file='tb_vectors_input.mem', output_file='tb_expected.mem', bits=16):
     with open(input_file, 'r') as fin, open(output_file, 'w') as fout:
         for line in fin:
@@ -100,15 +94,12 @@ def generar_output(input_file='tb_vectors_input.mem', output_file='tb_expected.m
                 continue
 
             a_bin, b_bin, op = parts
-            a = bin_to_float(a_bin, bits)
-            b = bin_to_float(b_bin, bits)
+            r, flags = calc_flags_ieee(a_bin, b_bin, op, bits=len(a_bin))
 
-            r, flags = calc_flags(a, b, op)
-            r_bin = float_to_bin(r, bits)
-
-            fout.write(f"{r_bin} {flags}\n")
+            fout.write(f"{r} {flags}\n")
 
     print(f"✅ Archivo {output_file} generado con resultado y flags ({bits} bits)")
+
 
 
 if __name__ == "__main__":
