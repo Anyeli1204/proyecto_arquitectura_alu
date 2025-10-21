@@ -1,7 +1,12 @@
-// top_basys3_fp_alu.v
 `timescale 1ns/1ps
-
-//======================= Wrapper: adapta 'alu' al enunciado =======================
+/*
+  MÓDULO: fp_alu
+  PROPÓSITO: Adaptar el núcleo 'alu' a la interfaz del proyecto.
+  Notas:
+    - Soporta half (16 bits) y opcionalmente single (32 bits) vía parámetro SUPPORT_SINGLE.
+    - Sólo se usan los 2 LSB de op_code para seleccionar {ADD,SUB,MUL,DIV}.
+    - Captura de resultado y flags cuando 'start' = 1; 'valid_out' pulsa un ciclo.
+*/
 module fp_alu #(
   parameter SUPPORT_SINGLE = 1  // pon 0 si aï¿½n no usas 32 bits
 )(
@@ -68,6 +73,11 @@ module fp_alu #(
 endmodule
 
 //==================== Sincronizador y pulso por flanco (btns) ====================
+/*
+  MÓDULOS: sync_2ff y edge_up
+  PROPÓSITO: Limpiar/sincronizar botones al dominio de CLK y generar pulsos
+             de 1 ciclo por flanco de subida.
+*/
 module sync_2ff(input clk, input d, output reg q);
   reg q1 = 1'b0;  initial q = 1'b0;
   always @(posedge clk) begin q1 <= d; q <= q1; end
@@ -81,6 +91,10 @@ module edge_up(input clk, input btn_raw, output pulse);
 endmodule
 
 // ========================= 7 segmentos (ï¿½NODO COMï¿½N, activo en BAJO) =========================
+/*
+  MÓDULO: hex7
+  PROPÓSITO: Decoder HEX (4 bits) ? segmentos {a..g} activos en bajo.
+*/
 module hex7(input [3:0] nib, output reg [6:0] seg);
   // seg = {a,b,c,d,e,f,g} ; 0 enciende
   always @* begin
@@ -106,6 +120,11 @@ module hex7(input [3:0] nib, output reg [6:0] seg);
   end
 endmodule
 
+/*
+  MÓDULO: sevenseg_mux
+  PROPÓSITO: Multiplexar 4 dígitos de 7 segmentos a partir de 'value' (16 bits).
+             Ánodos y segmentos activos en bajo.
+*/
 module sevenseg_mux(
   input        clk,           // 100 MHz
   input [15:0] value,         // 4 nibbles HEX
@@ -134,6 +153,21 @@ module sevenseg_mux(
 endmodule
 
 //======================== TOP Basys3: carga por bloques de 8 bits ========================
+/*
+  MÓDULO: top_basys3_fp_alu
+  PROPÓSITO: Interfaz en Basys3 para cargar operandos A/B por bytes, seleccionar
+             operación/mode, ejecutar y visualizar resultado/flags en LEDs y 7-seg.
+  Controles:
+    - SW[7:0] : byte de datos
+    - SW[8]   : 0?A, 1?B
+    - SW[10:9]: op (00=ADD,01=SUB,10=MUL,11=DIV)
+    - SW[11]  : mode (0=half,1=single)
+    - SW[13:12]: round_mode (reservado)
+    - SW[14]  : show_upper (single)
+    - SW[15]  : progress_mode (LEDs)
+    - BTNL/BTNR: cargar byte / avanzar bloque
+    - BTNC/BTND: start / reset
+*/
 module top_basys3_fp_alu #(
   parameter SUPPORT_SINGLE = 1
 )(

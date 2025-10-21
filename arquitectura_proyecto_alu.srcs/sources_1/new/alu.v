@@ -5,6 +5,24 @@
 // Dependencies: fp16_special_case_handler, Suma16Bits, ProductHP, DivHP
 //////////////////////////////////////////////////////////////////////////////////
 
+/*
+  OBJETIVO DEL MÓDULO
+  -------------------
+  Implementa una ALU parametrizable para formatos IEEE-754 de 16 o 32 bits.
+  - 'system' selecciona el ancho total (16=half, 32=single).
+  - Expone las 4 operaciones básicas vía 'op' (00=ADD, 01=SUB, 10=MUL, 11=DIV).
+  - Publica el resultado 'y' y el vector de flags 'ALUFlags' = {invalid, div0, ovf, unf, inx}.
+
+  ARQUITECTURA GENERAL
+  --------------------
+  1) Detección de casos especiales antes de computar: NaN, ±Inf, cero, denormals, div0, etc.
+     Se resuelven en 'fp16_special_case_handler' (retorna resultado/flags si aplica).
+  2) Camino normal: se instancian las unidades ADD/SUB/MUL/DIV y se selecciona la salida
+     según 'op', recolectando flags crudas (overflow/underflow/inexact/invalid).
+  3) Post-proceso: saturación a ±Inf si hay overflow, manejo de underflow/tininess y
+     recálculo de flags derivados del resultado final (ovf/unf/inx).
+*/
+
 module alu #(parameter system = 16) (
   input  wire [system-1:0] a,
   input  wire [system-1:0] b,
@@ -13,6 +31,7 @@ module alu #(parameter system = 16) (
   output reg  [4:0]        ALUFlags  // {invalid, div0, ovf, unf, inx}
 );
 
+  // Comprobación temprana del parámetro (desarrollo/simulación)
   initial begin
     if (system != 16 && system != 32) begin
       $display("Error: system parameter must be 16 or 32");
@@ -21,16 +40,24 @@ module alu #(parameter system = 16) (
   end
 
   // ---------- Formato ----------
+  // Particionado del número IEEE-754 según el ancho 'system'.
+  //   SIGN_POS : índice del bit de signo
+  //   EXP_BITS : cantidad de bits del exponente
+  //   FRAC_BITS: cantidad de bits de la fracción (mantisa sin el 1 implícito)
   localparam integer EXP_BITS  = (system == 16) ? 5  : 8;
   localparam integer FRAC_BITS = (system == 16) ? 10 : 23;
   localparam integer SIGN_POS  = system - 1;
 
   // Compatibilidad con submï¿½dulos
+  // Alias requeridos por los submódulos internos:
+  //   MBS = FRAC_BITS-1, EBS = EXP_BITS-1, BS = (system-1)
   localparam integer MBS = FRAC_BITS - 1;
   localparam integer EBS = EXP_BITS  - 1;
   localparam integer BS  = system - 1;
 
   // ---------- Casos especiales ----------
+  // Handler previo que detecta/atiende NaN/Inf/cero/denormal/div0 según la operación.
+  // Si 'is_special' es 1, 'special_result' y flags asociados definen la salida final.
   wire                        is_special;
   wire [BS:0]                 special_result;
   wire                        special_invalid, special_div_zero;
@@ -46,29 +73,33 @@ module alu #(parameter system = 16) (
   );
 
   // ---------- Camino normal ----------
+  // Resultados y flags crudas provenientes de cada unidad funcional.
   wire [BS:0] add_y, sub_y, mul_y, div_y;
   wire ov_add, un_add, ix_add;
   wire ov_sub, un_sub, ix_sub;
   wire ov_mul, un_mul, iv_mul, ix_mul;
   wire ov_div, un_div, iv_div, ix_div;
 
+  // Suma IEEE-754 (usa módulo Suma16Bits parametrizado por MBS/EBS/BS)
   Suma16Bits #(.MBS(MBS), .EBS(EBS), .BS(BS)) U_ADD (
     .S(a), .R(b), .F(add_y),
     .overflow(ov_add), .underflow(un_add), .inexact(ix_add)
   );
 
-  // SUB = ADD con signo de b invertido
+  // SUB = ADD con signo de b invertido (sumador comparte el mismo hardware)
   Suma16Bits #(.MBS(MBS), .EBS(EBS), .BS(BS)) U_SUB (
     .S(a), .R({~b[BS], b[BS-1:0]}), .F(sub_y),
     .overflow(ov_sub), .underflow(un_sub), .inexact(ix_sub)
   );
 
+  // Multiplicación IEEE-754 half/single
   ProductHP #(.MBS(MBS), .EBS(EBS), .BS(BS)) U_MUL (
     .S(a), .R(b), .F(mul_y),
     .overflow(ov_mul), .underflow(un_mul),
     .inv_op(iv_mul), .inexact(ix_mul)
   );
 
+  // División IEEE-754 half/single
   DivHP #(.MBS(MBS), .EBS(EBS), .BS(BS)) U_DIV (
     .S(a), .R(b), .F(div_y),
     .overflow(ov_div), .underflow(un_div),
@@ -76,12 +107,14 @@ module alu #(parameter system = 16) (
   );
 
   // ---------- Clasificaciï¿½n para rama especial ----------
+  // Utilidad para reconocer si el resultado especial representa ±Inf o subnormal.
   wire [EXP_BITS-1:0]  sp_exp  = special_result[SIGN_POS-1 -: EXP_BITS];
   wire [FRAC_BITS-1:0] sp_frac = special_result[FRAC_BITS-1:0];
   wire special_is_inf    = (sp_exp == {EXP_BITS{1'b1}}) && (sp_frac == {FRAC_BITS{1'b0}});
   wire special_is_denorm = (sp_exp == {EXP_BITS{1'b0}}) && (sp_frac != {FRAC_BITS{1'b0}});
 
   // ---------- Regs auxiliares (a nivel de mï¿½dulo) ----------
+  // Bancos de registros temporales para seleccionar/saturar y derivar flags finales.
   reg [BS:0]           y_sel;    // salida cruda de la unidad elegida
   reg                  ix_sel;   // inexact de la unidad
   reg                  iv_sel;   // invalid de la unidad (MUL/DIV)
@@ -97,6 +130,7 @@ module alu #(parameter system = 16) (
 
   reg                  ovf, unf, inx;
 
+  // Detectores de ±Inf en A y B (para enriquecer flags en casos especiales)
   wire is_pos_inf_a;
   wire is_neg_inf_a;
   is_inf_detector #(.MBS(MBS), .EBS(EBS), .BS(BS)) inf_det_S (
@@ -117,14 +151,24 @@ module alu #(parameter system = 16) (
   wire any_pos_inf = is_pos_inf_a | is_pos_inf_b;
   wire any_neg_inf = is_neg_inf_a | is_neg_inf_b;
 
+  // Detectores de valores inválidos (NaN u otros no representables)
   wire is_inv_a, is_inv_b;
   is_invalid_val #(.MBS(MBS), .EBS(EBS), .BS(BS)) inv_val_1(a, is_inv_a);
   is_invalid_val #(.MBS(MBS), .EBS(EBS), .BS(BS)) inv_val_2(b, is_inv_b);
 
+  // Ambos operandos son infinitos (para lógica de invalid en handler/flags)
   wire both_inf;
   both_are_inf #(.MBS(MBS), .EBS(EBS), .BS(BS)) both_val_infs(a, b, both_inf);
 
   // ================== Selecciï¿½n y flags ==================
+  /*
+    SECUENCIA EN EL CAMINO NORMAL (cuando no aplica el handler especial):
+    1) Elegir salida/flags crudas según 'op'.
+    2) Aplicar saturación: si overflow ? ±Inf; si underflow ? ±0 (o subnormal forzado).
+    3) Clasificar el resultado final (Inf/Zero/Subnormal) para derivar flags globales.
+    4) Calcular ovf/unf/inx combinando señales crudas + clasificación del resultado.
+    5) Publicar 'y' y 'ALUFlags' (invalid/div0 vienen de la rama especial previa).
+  */
   always @* begin
     // Defaults para evitar latches
     y        = {BS+1{1'b0}};

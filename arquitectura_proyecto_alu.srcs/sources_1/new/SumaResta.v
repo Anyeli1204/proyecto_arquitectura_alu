@@ -1,5 +1,20 @@
+/* ============================================================================
+   Parámetros comunes:
+     - MBS: índice máximo de la parte fraccionaria (mantisa sin 1 implícito)
+     - EBS: índice máximo del exponente
+     - BS : índice máximo del ancho total (signo+exponente+fracción)
+   Convenciones IEEE-754 (half por defecto):
+     - Mantisa  : [MBS:0]
+     - Exponente: [BS-1 : BS-EBS-1] (EBS+1 bits)
+     - Signo    : [BS]
+============================================================================ */
 `timescale 1ns / 1ps
 
+// -----------------------------------------------------------------------------
+// FullAdder: sumador de 1 bit con acarreo de entrada/salida (ripple-carry cell)
+// Entradas:  Si (bit A), Ri (bit B), Din (carry in)
+// Salidas:   Debe (carry out), Dout (suma)
+// -----------------------------------------------------------------------------
 module FullAdder (Si, Ri, Din, Debe, Dout);
   input Si, Ri, Din;
   output wire Debe, Dout;
@@ -7,6 +22,13 @@ module FullAdder (Si, Ri, Din, Debe, Dout);
   assign Dout = Si ^ Ri ^ Din;
 endmodule
 
+// -----------------------------------------------------------------------------
+// FullSub_add: celda de resta (1 bit) para restador en cadena (borrow ripple)
+// Implementa resta A - B - borrow_in con:
+//  - Debe: borrow out
+//  - Dout: diferencia
+// Se reutiliza misma forma de Dout (XOR) para suma/resta con 2-complemento.
+// -----------------------------------------------------------------------------
 module FullSub_add(Si, Ri, Din, Debe, Dout);
   input Si, Ri, Din;
   output wire Debe, Dout;
@@ -16,6 +38,10 @@ module FullSub_add(Si, Ri, Din, Debe, Dout);
   
 endmodule
 
+// -----------------------------------------------------------------------------
+// RestaExp_sum: restador de exponentes (EBS+1 bits) con celdas FullSub_add.
+// Uso: F = S - R (sin sesgos adicionales). Devuelve diferencia de exponentes.
+// -----------------------------------------------------------------------------
 module RestaExp_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F);
   input [EBS:0] S, R;
   output wire[EBS: 0] F;
@@ -31,6 +57,10 @@ module RestaExp_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, 
  endmodule
   
 
+// -----------------------------------------------------------------------------
+// SumarExp: sumador de exponentes (EBS+1 bits) con celdas FullAdder.
+// Uso: F = S + R (útil, p. ej., para +1/-1 del exponente o combinaciones).
+// -----------------------------------------------------------------------------
 module SumarExp #(parameter MBS=9, parameter EBS=4, parameter BS=15)(S, R, F);
   input [EBS:0] S, R;
   output wire[EBS: 0] F;
@@ -46,18 +76,33 @@ module SumarExp #(parameter MBS=9, parameter EBS=4, parameter BS=15)(S, R, F);
 
 endmodule
 
+// -----------------------------------------------------------------------------
+// mas_1_bit_expo: incrementa en 1 el exponente (EBS+1 bits) usando SumarExp.
+// -----------------------------------------------------------------------------
 module mas_1_bit_expo #(parameter MBS=9, parameter EBS=4, parameter BS=15)(exp, F);
   input [EBS:0] exp;
   output [EBS:0] F;
   SumarExp #(.MBS(MBS), .EBS(EBS), .BS(BS)) add_exp (exp, 5'b00001, F);
 endmodule
 
+// -----------------------------------------------------------------------------
+// restar_1_bit_expo_sum: decrementa en 1 el exponente con RestaExp_sum.
+// -----------------------------------------------------------------------------
 module restar_1_bit_expo_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15)(exp, F);
   input [4:0] exp;
   output [4:0] F;
   RestaExp_sum #(.MBS(MBS), .EBS(EBS), .BS(BS)) sub_exp(exp, 5'b00001, F);
 endmodule
 
+// -----------------------------------------------------------------------------
+// right_shift_pf_sum: alineación por desplazamiento a la derecha de la mantisa
+// para suma/resta. Devuelve:
+//  - F          : mantisa alineada extendida (MBS+2 bits con bit implícito)
+//  - guard_bit  : bit inmediatamente después del LSB (para redondeo)
+//  - sticky_bits: OR de los bits perdidos (para redondeo / inexact)
+//  - inexact_flag: indica si se perdió precisión en la alineación
+// Implementación: compone {1'b1, mantisa, 10'b0} y desplaza por 'shifts'.
+// -----------------------------------------------------------------------------
 module right_shift_pf_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15)
 (mantisa, shifts, F, guard_bit, sticky_bits, inexact_flag);
 
@@ -78,6 +123,21 @@ module right_shift_pf_sum #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   
 endmodule
 
+// -----------------------------------------------------------------------------
+// SumMantisa: suma de mantisas alineadas (incluye guard) y redondeo RNE.
+// Entradas:
+//   - S, R        : mantisas extendidas (MBS+2 bits: incluye 1 implícito + guard)
+//   - guard_S/R   : bits guard asociados a cada operando (cuando vienen shift)
+//   - ExpIn       : exponente base ya seleccionado
+//   - sticky_for_round: sticky OR global para el redondeo
+// Salidas:
+//   - F           : fracción final redondeada (MBS:0)
+//   - ExpOut      : exponente ajustado (por carry y redondeo)
+// Notas:
+//   - Usa un sumador ripple de (MBS+3) bits.
+//   - Si hay carry, normaliza desplazando 1 y aumenta exponente (+1).
+//   - Prepara vector 'ms_for_round' y llama a RoundNearestEven.
+// -----------------------------------------------------------------------------
 module SumMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15) 
 (S, R, guard_S, guard_R, ExpIn, ExpOut, F, sticky_for_round);
 
@@ -127,6 +187,22 @@ module SumMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)
   assign ExpOut = exp_rounded;
 endmodule
 
+// -----------------------------------------------------------------------------
+// RestaMantisa: resta de mantisas y normalización por desplazamiento a la izq.
+// Entradas:
+//   - S, R          : mantisas (MBS:0)
+//   - is_same_exp   : indica si e1==e2 (afecta comparación y normalización)
+//   - is_mayus_exp  : indica si e1>e2 (quién fue mayor al alinear)
+//   - ExpIn         : exponente base
+// Salidas:
+//   - F             : fracción final normalizada y redondeada
+//   - ExpOut        : exponente ajustado por el corrimiento
+// Proceso:
+//   1) Se computan dos restas (S-R y R-S) en paralelo para obtener magnitud.
+//   2) Se detecta la primera '1' (leading one) para normalizar (left shift).
+//   3) Se ajusta el exponente restándolo con el índice hallado.
+//   4) Se arman bits perdidos para redondeo y se llama a RoundNearestEven.
+// -----------------------------------------------------------------------------
 module RestaMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)  
 (S, R, is_same_exp, is_mayus_exp, ExpIn, ExpOut, F);
   
@@ -219,6 +295,17 @@ module RestaMantisa #(parameter MBS=9, parameter EBS=4, parameter BS=15)
 
 endmodule
 
+// -----------------------------------------------------------------------------
+// Suma16Bits: unidad de suma/resta IEEE-754 parametrizada.
+// Flujo:
+//   1) Extrae mantisas y exponentes de S y R; calcula diferencias de exponente.
+//   2) Alinea la mantisa menor con right_shift_pf_sum (guard/sticky/inexact).
+//   3) Decide operación: si signos distintos ? resta de magnitudes; si iguales ? suma.
+//   4) Elige el signo del resultado según mayor exponente/magnitud (con empates).
+//   5) Usa SumMantisa o RestaMantisa; normaliza y redondea (RNE).
+//   6) Calcula flags: inexact por alineación; overflow si exp todos 1; underflow
+//      si exp=0 y hubo inexact (tininess al final).
+// -----------------------------------------------------------------------------
 // Mantisa [9:0]
 // Exponente [10:14]
 // Signo [15]
@@ -311,4 +398,3 @@ module Suma16Bits #(parameter MBS=9, parameter EBS=4, parameter BS=15) (S, R, F,
   assign underflow = ( final_exp == {EBS+1{1'b0}} ) & inexact;
 
 endmodule
-
