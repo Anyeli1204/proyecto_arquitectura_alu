@@ -93,5 +93,5 @@ def generar_vectores(n=1000, bits=16, archivo='vectors.mem'):
 
 
 if __name__ == "__main__":
-    generar_vectores(10, bits=16, archivo='./data/tb_vectors_16.mem')
-    generar_vectores(10, bits=32, archivo='./data/tb_vectors_32.mem')
+    generar_vectores(100000, bits=16, archivo='./data/tb_vectors_16_100000.mem')
+    generar_vectores(100000, bits=32, archivo='./data/tb_vectors_32_100000.mem')
