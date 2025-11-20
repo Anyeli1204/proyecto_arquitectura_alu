@@ -1,5 +1,6 @@
 module flopr (input  clk, reset,
-               input  [WIDTH-1:0] d, 
+               input  [WIDTH-1:0] d,
+               input StallF, 
                output [WIDTH-1:0] q);
 
   parameter WIDTH = 8;
@@ -8,6 +9,6 @@ module flopr (input  clk, reset,
 
   always @(posedge clk or posedge reset) begin 
     if (reset) q <= 0; 
-    else       q <= d; 
+    else if(!StallF)  q <= d; 
   end
 endmodule

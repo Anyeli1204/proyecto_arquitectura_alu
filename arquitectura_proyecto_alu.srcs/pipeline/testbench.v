@@ -14,6 +14,11 @@ module testbench;
     .MemWrite(MemWrite)
   );
 
+  initial begin
+    $dumpfile("pipeline_dump.vcd"); 
+    $dumpvars(0, testbench);
+end
+
   // initialize test
   initial begin
     reset = 1; # 22;
