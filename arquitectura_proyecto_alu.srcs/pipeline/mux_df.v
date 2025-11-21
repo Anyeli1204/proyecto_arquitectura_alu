@@ -15,7 +15,7 @@ module mux_df(
             2'b01: data_out = ResultW;
             default: 
                 begin 
-                    $display("Error in mux_df: invalid forward signal, %h", forward);
+                    $display("Error in mux_df: invalid forward signal");
                     data_out = 2'bxx;
                 end
         endcase

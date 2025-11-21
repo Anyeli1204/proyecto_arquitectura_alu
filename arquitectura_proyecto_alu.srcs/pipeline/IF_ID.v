@@ -6,13 +6,13 @@ module IF_ID(
 
 always @(posedge clk) begin
     if (reset || flushD) begin
-        InstrD = 32'b0;
-        PCD = 0;
-        PCPlus4D = 0;
+        InstrD <= 32'b0;
+        PCD <= 0;
+        PCPlus4D <= 0;
     end else if (!stallD) begin
-        InstrD = InstrF;
-        PCD = PCF;
-        PCPlus4D = PCPlus4F;
+        InstrD <= InstrF;
+        PCD <= PCF;
+        PCPlus4D <= PCPlus4F;
     end
 end
 

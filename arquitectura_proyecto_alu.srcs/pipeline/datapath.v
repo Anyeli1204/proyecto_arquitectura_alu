@@ -45,6 +45,7 @@ module datapath (input  clk, reset,
 // IF/ID REGISTER WIRES
 // =======================
 wire [31:0] InstrD, PCD, PCPlus4D;
+wire [31:0] InstrE, InstruM, InstruW;
 
 // =======================
 // ID/EX REGISTER WIRES
@@ -162,14 +163,13 @@ stalling stallunit(
 
 );
 
-
 regfile rf(
 
     // Input
     .clk(clk),
     .we3(RegWriteW),
-    .a1(Rs1D),
-    .a2(Rs2D),
+    .a1(InstrD[19:15]),
+    .a2(InstrD[24:20]),
     .a3(RdW),
     .wd3(Result),
 
@@ -206,6 +206,7 @@ ID_EX IDEX (
     .Rs1D(Rs1D),
     .Rs2D(Rs2D),
     .RdD(RdD),
+    .InstrD(InstrD),
 
     // Hazard
     .FlushE(1'b0),
@@ -216,6 +217,7 @@ ID_EX IDEX (
     .ALUSrcE(ALUSrcE),
     .ResultSrcE(ResultSrcE),
     .ALUControlE(ALUControlE),
+    .InstrE(InstrE),
 
     // Data Output
     .RD1E(RD1E),
@@ -292,6 +294,7 @@ EX_MEM EXMEM (
     .RegWriteE(RegWriteE),
     .MemWriteE(MemWriteE),
     .ResultSrcE(ResultSrcE),
+    .InstruE(InstrE),
 
     // Data Input
     .ALUResultE(ALUResult),
@@ -308,7 +311,8 @@ EX_MEM EXMEM (
     .ALUResultM(ALUResultM),
     .WriteDataM(WriteDataM),
     .PCPlus4M(PCPlus4M),
-    .RdM(RdM)
+    .RdM(RdM),
+    .InstruM(InstruM)
 );
 
 // =======================
@@ -321,6 +325,7 @@ MEM_WB MEMWB (
     // Control Input
     .RegWriteM(RegWriteM),
     .ResultSrcM(ResultSrcM),
+    .InstruM(InstruM),
 
     // Data Input
     .ALUResultM(ALUResultM),
@@ -336,7 +341,8 @@ MEM_WB MEMWB (
     .ALUResultW(ALUResultW),
     .ReadDataW(ReadDataW),
     .PCPlus4W(PCPlus4W),
-    .RdW(RdW)
+    .RdW(RdW),
+    .InstruW(InstruW)
 );
 
 // =======================
